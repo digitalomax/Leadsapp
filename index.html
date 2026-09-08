@@ -1,0 +1,2096 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Leads Dormants → Rendez-vous</title>
+<meta name="description" content="Le système de 6 relances pour les prestataires B2B qui veulent mieux exploiter leurs leads déjà acquis.">
+<style>
+/* =========================================================
+   DESIGN TOKENS — "nuit + crème"
+========================================================= */
+:root{
+  --bg:#0a0c12;
+  --bg-2:#0e1119;
+  --surface:#141826;
+  --surface-2:#1b2032;
+  --surface-3:#232941;
+  --border:#2a3049;
+  --border-soft:#1f2436;
+  --text:#f3ead9;
+  --text-dim:#c9c0ac;
+  --text-faint:#8b8a97;
+  --accent:#d8b06a;
+  --accent-strong:#e7c988;
+  --accent-ink:#241a08;
+  --sage:#8aa896;
+  --danger:#d97b62;
+  --danger-strong:#e69682;
+  --success:#8fbf9a;
+  --radius-lg:20px;
+  --radius-md:14px;
+  --radius-sm:10px;
+  --shadow-soft:0 10px 30px rgba(0,0,0,.35);
+  --shadow-tiny:0 2px 8px rgba(0,0,0,.25);
+  --maxw:1180px;
+  --nav-h:64px;
+  --tabbar-h:64px;
+  font-size:16px;
+}
+*,*::before,*::after{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  -webkit-font-smoothing:antialiased;
+  line-height:1.5;
+  min-height:100vh;
+  padding-bottom:calc(var(--tabbar-h) + 16px);
+}
+@media (min-width:900px){ body{ padding-bottom:24px; } }
+h1,h2,h3,h4,p,ul,figure{margin:0;}
+img{max-width:100%;display:block;}
+button{font-family:inherit;}
+a{color:var(--accent-strong);}
+::selection{background:var(--accent);color:var(--accent-ink);}
+:focus-visible{outline:2px solid var(--accent-strong);outline-offset:2px;border-radius:6px;}
+
+.visually-hidden{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;}
+
+/* =========================================================
+   LAYOUT
+========================================================= */
+#app{max-width:var(--maxw);margin:0 auto;padding:16px;padding-top:calc(var(--nav-h) + 16px);}
+@media (min-width:900px){ #app{padding:24px 32px;padding-top:calc(var(--nav-h) + 28px);} }
+
+.topbar{
+  position:fixed;top:0;left:0;right:0;z-index:40;
+  height:var(--nav-h);
+  background:rgba(10,12,18,.92);
+  backdrop-filter:blur(10px);
+  border-bottom:1px solid var(--border-soft);
+  display:flex;align-items:center;
+}
+.topbar-inner{max-width:var(--maxw);margin:0 auto;width:100%;display:flex;align-items:center;justify-content:space-between;padding:0 16px;gap:12px;}
+@media (min-width:900px){ .topbar-inner{padding:0 32px;} }
+.brand{display:flex;align-items:center;gap:10px;font-weight:700;color:var(--text);text-decoration:none;font-size:.95rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.brand-mark{width:30px;height:30px;border-radius:9px;background:linear-gradient(135deg,var(--accent),var(--sage));flex:0 0 auto;display:flex;align-items:center;justify-content:center;font-weight:800;color:var(--accent-ink);font-size:.9rem;}
+.brand-text{display:none;}
+@media (min-width:640px){ .brand-text{display:inline;} }
+
+.topnav{display:none;gap:4px;}
+@media (min-width:760px){ .topnav{display:flex;} }
+.topnav button{
+  background:transparent;border:1px solid transparent;color:var(--text-dim);
+  padding:9px 14px;border-radius:999px;font-size:.88rem;font-weight:600;cursor:pointer;
+  display:flex;align-items:center;gap:6px;transition:background .15s,color .15s;
+}
+.topnav button:hover{background:var(--surface-2);color:var(--text);}
+.topnav button.active{background:var(--surface-2);color:var(--accent-strong);border-color:var(--border);}
+
+.tabbar{
+  position:fixed;left:0;right:0;bottom:0;z-index:40;height:var(--tabbar-h);
+  background:rgba(14,17,25,.96);backdrop-filter:blur(10px);
+  border-top:1px solid var(--border-soft);
+  display:flex;
+}
+@media (min-width:760px){ .tabbar{display:none;} }
+.tabbar button{
+  flex:1;background:none;border:none;color:var(--text-faint);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
+  font-size:.68rem;font-weight:600;cursor:pointer;min-height:44px;padding:6px 2px;
+}
+.tabbar button .ic{font-size:1.15rem;line-height:1;}
+.tabbar button.active{color:var(--accent-strong);}
+
+/* =========================================================
+   COMPONENTS
+========================================================= */
+.page-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:20px;flex-wrap:wrap;}
+.crumbs{display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap;}
+.btn-ghost-sm{
+  background:none;border:1px solid var(--border);color:var(--text-dim);border-radius:999px;
+  padding:7px 13px;font-size:.82rem;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:5px;min-height:36px;
+}
+.btn-ghost-sm:hover{background:var(--surface-2);color:var(--text);}
+
+h1.page-title{font-size:1.5rem;font-weight:800;letter-spacing:-.01em;color:var(--text);}
+@media (min-width:760px){ h1.page-title{font-size:1.85rem;} }
+p.page-sub{color:var(--text-dim);margin-top:6px;font-size:.95rem;max-width:60ch;}
+
+.card{
+  background:var(--surface);border:1px solid var(--border-soft);border-radius:var(--radius-lg);
+  padding:20px;box-shadow:var(--shadow-tiny);
+}
+.card + .card{margin-top:14px;}
+.card-title{font-size:1.05rem;font-weight:700;margin-bottom:4px;}
+.card-sub{color:var(--text-dim);font-size:.86rem;margin-bottom:14px;}
+.grid{display:grid;gap:14px;}
+@media (min-width:680px){ .grid.cols-2{grid-template-columns:1fr 1fr;} }
+@media (min-width:900px){ .grid.cols-3{grid-template-columns:repeat(3,1fr);} .grid.cols-4{grid-template-columns:repeat(4,1fr);} }
+
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  background:var(--accent);color:var(--accent-ink);border:none;border-radius:999px;
+  padding:13px 22px;font-weight:700;font-size:.95rem;cursor:pointer;min-height:46px;
+  transition:transform .1s,filter .15s;width:auto;
+}
+.btn:hover{filter:brightness(1.08);}
+.btn:active{transform:scale(.98);}
+.btn.block{width:100%;}
+.btn.secondary{background:var(--surface-3);color:var(--text);border:1px solid var(--border);}
+.btn.danger{background:var(--danger);color:#2a0f08;}
+.btn.sm{padding:9px 15px;min-height:38px;font-size:.85rem;}
+.btn:disabled{opacity:.5;cursor:not-allowed;}
+.btn-link{background:none;border:none;color:var(--accent-strong);font-weight:700;cursor:pointer;padding:8px 4px;font-size:.9rem;}
+
+.stack{display:flex;flex-direction:column;gap:10px;}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
+.row.between{justify-content:space-between;}
+.actions-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px;}
+
+label.field-label{display:block;font-size:.83rem;font-weight:700;color:var(--text-dim);margin-bottom:6px;}
+.field{margin-bottom:16px;}
+.hint{font-size:.78rem;color:var(--text-faint);margin-top:5px;}
+.err{font-size:.8rem;color:var(--danger-strong);margin-top:5px;font-weight:600;}
+input[type=text],input[type=number],input[type=date],input[type=email],textarea,select{
+  width:100%;background:var(--surface-2);border:1px solid var(--border);color:var(--text);
+  border-radius:var(--radius-sm);padding:12px 14px;font-size:.95rem;font-family:inherit;min-height:46px;
+}
+textarea{min-height:90px;resize:vertical;}
+input.invalid,select.invalid,textarea.invalid{border-color:var(--danger-strong);}
+input::placeholder,textarea::placeholder{color:var(--text-faint);}
+select{appearance:none;background-image:linear-gradient(45deg,transparent 50%,var(--text-dim) 50%),linear-gradient(135deg,var(--text-dim) 50%,transparent 50%);background-position:calc(100% - 20px) 50%,calc(100% - 15px) 50%;background-size:5px 5px,5px 5px;background-repeat:no-repeat;}
+
+.chip-group{display:flex;flex-wrap:wrap;gap:8px;}
+.chip{
+  border:1px solid var(--border);background:var(--surface-2);color:var(--text-dim);
+  padding:9px 14px;border-radius:999px;font-size:.85rem;font-weight:600;cursor:pointer;min-height:40px;
+}
+.chip.selected{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);}
+
+.badge{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:999px;font-size:.72rem;font-weight:700;background:var(--surface-3);color:var(--text-dim);border:1px solid var(--border);}
+.badge.high{background:rgba(216,176,106,.18);color:var(--accent-strong);border-color:rgba(216,176,106,.35);}
+.badge.mid{background:rgba(138,168,150,.18);color:var(--sage);border-color:rgba(138,168,150,.35);}
+.badge.low{background:var(--surface-3);color:var(--text-faint);}
+.badge.demo{background:rgba(217,123,98,.18);color:var(--danger-strong);border-color:rgba(217,123,98,.35);}
+
+.progressbar{height:8px;border-radius:999px;background:var(--surface-3);overflow:hidden;}
+.progressbar > div{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent-strong));border-radius:999px;transition:width .3s;}
+
+.stepper{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;margin-bottom:20px;}
+.step-pill{
+  flex:0 0 auto;display:flex;align-items:center;gap:8px;padding:9px 14px;border-radius:999px;
+  border:1px solid var(--border);background:var(--surface);color:var(--text-faint);font-size:.82rem;font-weight:700;cursor:pointer;min-height:40px;
+}
+.step-pill .num{width:20px;height:20px;border-radius:50%;background:var(--surface-3);display:flex;align-items:center;justify-content:center;font-size:.7rem;}
+.step-pill.done{color:var(--sage);border-color:rgba(138,168,150,.4);}
+.step-pill.done .num{background:var(--sage);color:#0e1911;}
+.step-pill.current{color:var(--accent-strong);border-color:var(--accent);background:var(--surface-2);}
+.step-pill.current .num{background:var(--accent);color:var(--accent-ink);}
+
+.empty-state{text-align:center;padding:36px 18px;color:var(--text-dim);}
+.empty-state .ic{font-size:2rem;margin-bottom:10px;}
+.empty-state p{max-width:42ch;margin:0 auto;}
+
+.lead-card{background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius-md);padding:14px;}
+.lead-card .top{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;}
+.lead-card h3{font-size:1rem;font-weight:700;}
+.lead-meta{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;}
+.lead-meta span{font-size:.75rem;color:var(--text-faint);background:var(--surface-3);padding:3px 9px;border-radius:999px;}
+.lead-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;}
+
+table.data-table{width:100%;border-collapse:collapse;font-size:.86rem;}
+table.data-table th,table.data-table td{text-align:left;padding:10px 8px;border-bottom:1px solid var(--border-soft);}
+table.data-table th{color:var(--text-faint);font-size:.72rem;text-transform:uppercase;letter-spacing:.04em;}
+.table-wrap{overflow-x:auto;}
+@media (max-width:760px){ .table-wrap.responsive-cards table{display:none;} }
+.mobile-cards{display:block;}
+@media (min-width:760px){ .mobile-cards{display:none;} }
+
+.msg-card{background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius-md);padding:16px;}
+.msg-card .day-tag{display:inline-flex;align-items:center;gap:6px;background:var(--accent);color:var(--accent-ink);padding:4px 12px;border-radius:999px;font-weight:800;font-size:.78rem;}
+.msg-body{background:var(--surface);border:1px solid var(--border-soft);border-radius:var(--radius-sm);padding:14px;margin:12px 0;white-space:pre-wrap;font-size:.92rem;line-height:1.6;}
+.msg-meta{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0;}
+.why-box{font-size:.82rem;color:var(--text-dim);background:var(--surface-3);border-radius:var(--radius-sm);padding:10px 12px;margin-bottom:10px;}
+
+.modal-overlay{position:fixed;inset:0;background:rgba(6,7,11,.72);display:flex;align-items:flex-end;justify-content:center;z-index:100;padding:0;}
+@media (min-width:640px){ .modal-overlay{align-items:center;padding:20px;} }
+.modal-box{background:var(--surface);border:1px solid var(--border);border-radius:20px 20px 0 0;padding:22px;width:100%;max-width:520px;max-height:88vh;overflow-y:auto;box-shadow:var(--shadow-soft);}
+@media (min-width:640px){ .modal-box{border-radius:var(--radius-lg);} }
+.modal-box h2{font-size:1.2rem;font-weight:800;margin-bottom:10px;}
+.modal-close{position:sticky;top:0;float:right;background:var(--surface-2);border:1px solid var(--border);border-radius:50%;width:34px;height:34px;color:var(--text);font-size:1rem;cursor:pointer;}
+
+.toast-container{position:fixed;bottom:calc(var(--tabbar-h) + 14px);left:0;right:0;display:flex;flex-direction:column;align-items:center;gap:8px;z-index:200;pointer-events:none;padding:0 16px;}
+@media (min-width:760px){ .toast-container{bottom:20px;} }
+.toast{background:var(--surface-3);color:var(--text);border:1px solid var(--border);padding:11px 20px;border-radius:999px;font-size:.86rem;font-weight:600;box-shadow:var(--shadow-soft);max-width:92vw;}
+
+.onboard-overlay{position:fixed;inset:0;background:var(--bg);z-index:300;display:flex;flex-direction:column;}
+.onboard-body{flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:32px 24px;max-width:520px;margin:0 auto;}
+.onboard-dots{display:flex;gap:6px;margin:20px 0;}
+.onboard-dots span{width:7px;height:7px;border-radius:50%;background:var(--surface-3);}
+.onboard-dots span.active{background:var(--accent);}
+.onboard-foot{padding:20px 24px;display:flex;justify-content:space-between;gap:10px;max-width:520px;margin:0 auto;width:100%;}
+
+.pipeline-cols{display:flex;gap:14px;overflow-x:auto;padding-bottom:8px;}
+.pipeline-col{flex:0 0 260px;background:var(--surface);border:1px solid var(--border-soft);border-radius:var(--radius-lg);padding:12px;}
+@media (max-width:760px){ .pipeline-cols{flex-direction:column;overflow-x:visible;} .pipeline-col{flex:1 1 auto;} }
+.pipeline-col h3{font-size:.86rem;font-weight:800;margin-bottom:10px;display:flex;justify-content:space-between;color:var(--text-dim);}
+.pipeline-card{background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px;margin-bottom:8px;font-size:.84rem;}
+.pipeline-card .pv{color:var(--accent-strong);font-weight:700;}
+
+.section-heading{font-size:1.15rem;font-weight:800;margin:24px 0 12px;}
+.section-heading:first-child{margin-top:0;}
+
+.tooltip-icon{display:inline-flex;align-items:center;justify-content:center;width:17px;height:17px;border-radius:50%;background:var(--surface-3);color:var(--text-faint);font-size:.68rem;font-weight:800;cursor:help;border:1px solid var(--border);}
+
+.kv-line{display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-bottom:1px solid var(--border-soft);font-size:.9rem;}
+.kv-line:last-child{border-bottom:none;}
+.kv-line .k{color:var(--text-dim);}
+.kv-line .v{font-weight:700;text-align:right;}
+
+.checklist-item{display:flex;gap:12px;align-items:flex-start;padding:11px 0;border-bottom:1px solid var(--border-soft);}
+.checklist-item:last-child{border-bottom:none;}
+.checklist-item input[type=checkbox]{width:20px;height:20px;flex:0 0 auto;margin-top:2px;accent-color:var(--accent);}
+.checklist-item label{font-size:.92rem;cursor:pointer;}
+
+.result-hero{background:linear-gradient(160deg,var(--surface-2),var(--surface));border:1px solid var(--border);border-radius:var(--radius-lg);padding:26px 22px;text-align:center;}
+.result-hero h1{font-size:1.5rem;font-weight:800;}
+@media (min-width:760px){ .result-hero h1{font-size:1.9rem;} }
+
+.today-actions{list-style:none;padding:0;margin:0;counter-reset:ta;}
+.today-actions li{counter-increment:ta;display:flex;gap:12px;align-items:flex-start;padding:10px 0;border-bottom:1px solid var(--border-soft);}
+.today-actions li:last-child{border-bottom:none;}
+.today-actions li::before{content:counter(ta);flex:0 0 auto;width:24px;height:24px;border-radius:50%;background:var(--accent);color:var(--accent-ink);font-weight:800;font-size:.78rem;display:flex;align-items:center;justify-content:center;}
+
+.bonus-card{display:flex;flex-direction:column;gap:10px;}
+.bonus-card .ic{font-size:1.8rem;}
+.status-dot{width:8px;height:8px;border-radius:50%;background:var(--text-faint);display:inline-block;}
+.status-dot.on{background:var(--success);}
+
+.template-card{background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius-md);padding:15px;}
+.template-card .cat-tag{font-size:.7rem;text-transform:uppercase;letter-spacing:.05em;color:var(--text-faint);font-weight:700;}
+
+.filters-bar{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px;}
+.filters-bar select,.filters-bar input{width:auto;min-width:140px;flex:1 1 140px;}
+
+.copybtn.copied{background:var(--success);color:#0e1911;}
+
+/* print */
+@media print{
+  .topbar,.tabbar,.stepper,.actions-row,.no-print,.btn,.toast-container,.modal-overlay,.filters-bar{display:none !important;}
+  body{background:#fff;color:#111;padding:0;}
+  #app{max-width:100%;padding:0;}
+  .card{background:#fff;border:1px solid #ccc;box-shadow:none;color:#111;break-inside:avoid;}
+  .msg-body{background:#f7f7f7;border-color:#ccc;color:#111;}
+  h1,h2,h3,.card-title{color:#111;}
+  .kv-line,.card-sub,.why-box{color:#333;}
+  a{color:#111;text-decoration:none;}
+}
+@media (prefers-reduced-motion:reduce){
+  *{animation-duration:.001ms !important;transition-duration:.001ms !important;}
+}
+</style>
+</head>
+<body>
+<a href="#home" class="visually-hidden">Aller au contenu principal</a>
+<header class="topbar no-print">
+  <div class="topbar-inner">
+    <a href="#home" class="brand"><span class="brand-mark">LD</span><span class="brand-text">Leads Dormants</span></a>
+    <nav class="topnav" aria-label="Navigation principale">
+      <button type="button" data-nav="home">Accueil</button>
+      <button type="button" data-nav="system">Mon système</button>
+      <button type="button" data-nav="bonus">Bonus</button>
+      <button type="button" data-nav="exports">Ressources / Export</button>
+    </nav>
+  </div>
+</header>
+
+<main id="app" role="main"></main>
+
+<nav class="tabbar no-print" aria-label="Navigation mobile">
+  <button type="button" data-nav="home"><span class="ic">🏠</span>Accueil</button>
+  <button type="button" data-nav="system"><span class="ic">🧭</span>Système</button>
+  <button type="button" data-nav="bonus"><span class="ic">🎁</span>Bonus</button>
+  <button type="button" data-nav="exports"><span class="ic">📤</span>Export</button>
+</nav>
+
+<div id="modal-root"></div>
+<div id="toast-container" class="toast-container no-print" aria-live="polite" aria-atomic="true"></div>
+
+<script>
+(function(){
+"use strict";
+
+/* =========================================================
+   UTILS
+========================================================= */
+const Utils = {
+  uid(){ return 'id_' + Math.random().toString(36).slice(2,10) + Date.now().toString(36); },
+  clamp(n,min,max){ return Math.min(max,Math.max(min,n)); },
+  clampPercent(n){ return Utils.clamp(Utils.toNumber(n),0,100); },
+  toNumber(v){
+    if(v===null||v===undefined||v==='') return 0;
+    if(typeof v==='number') return isFinite(v)?v:0;
+    let s=String(v).trim().replace(/\s/g,'').replace(/€/g,'').replace(',', '.');
+    let n=parseFloat(s);
+    return isFinite(n)?n:0;
+  },
+  money(n){
+    n=Utils.toNumber(n);
+    try{ return new Intl.NumberFormat('fr-FR',{style:'currency',currency:'EUR',maximumFractionDigits:0}).format(n); }
+    catch(e){ return n+' €'; }
+  },
+  number(n){
+    try{ return new Intl.NumberFormat('fr-FR').format(Utils.toNumber(n)); }
+    catch(e){ return String(n); }
+  },
+  escapeHtml(str){
+    return String(str==null?'':str).replace(/[&<>"']/g,c=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+  },
+  nl2br(str){ return Utils.escapeHtml(str).replace(/\n/g,'<br>'); },
+  formatDate(ts){
+    if(!ts) return '—';
+    try{
+      const d = typeof ts==='number'||/^\d+$/.test(ts) ? new Date(Number(ts)) : new Date(ts);
+      if(isNaN(d.getTime())) return '—';
+      return new Intl.DateTimeFormat('fr-FR',{day:'2-digit',month:'2-digit',year:'numeric'}).format(d);
+    }catch(e){ return '—'; }
+  },
+  todayISO(){ return new Date().toISOString().slice(0,10); },
+  daysBetween(iso){
+    if(!iso) return null;
+    const d = new Date(iso);
+    if(isNaN(d.getTime())) return null;
+    const diff = Date.now() - d.getTime();
+    return Math.floor(diff/86400000);
+  },
+  daysUntil(iso){
+    if(!iso) return null;
+    const d = new Date(iso);
+    if(isNaN(d.getTime())) return null;
+    const diff = d.getTime() - new Date(new Date().toDateString()).getTime();
+    return Math.round(diff/86400000);
+  },
+  downloadFile(filename, content, mime){
+    const blob = new Blob([content], {type: mime || 'text/plain;charset=utf-8'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click();
+    setTimeout(()=>{ document.body.removeChild(a); URL.revokeObjectURL(url); }, 300);
+  },
+  async copyText(text){
+    try{
+      if(navigator.clipboard && window.isSecureContext){
+        await navigator.clipboard.writeText(text);
+        return true;
+      }
+    }catch(e){ /* fall through to fallback */ }
+    try{
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position='fixed'; ta.style.opacity='0'; ta.style.left='-9999px';
+      document.body.appendChild(ta);
+      ta.focus(); ta.select();
+      const ok = document.execCommand('copy');
+      document.body.removeChild(ta);
+      return ok;
+    }catch(e){ return false; }
+  },
+  csvEscape(v){
+    v = v===null||v===undefined?'':String(v);
+    if(/[",;\n]/.test(v)) return '"' + v.replace(/"/g,'""') + '"';
+    return v;
+  },
+  debounce(fn,wait){ let t; return function(...a){ clearTimeout(t); t=setTimeout(()=>fn.apply(this,a),wait); }; },
+  getPath(obj,path){ return path.split('.').reduce((o,k)=> (o==null?undefined:o[k]), obj); },
+  setPath(obj,path,value){
+    const parts = path.split('.');
+    let cur = obj;
+    for(let i=0;i<parts.length-1;i++){
+      if(cur[parts[i]]==null || typeof cur[parts[i]]!=='object') cur[parts[i]]={};
+      cur = cur[parts[i]];
+    }
+    cur[parts[parts.length-1]] = value;
+  }
+};
+
+/* =========================================================
+   CONSTANTS / DATA DICTIONARIES
+========================================================= */
+const SOURCES = ['Meta Ads','Google Ads','LinkedIn','Formulaire','Calendly','Email','Recommandation','Événement','Autre'];
+const STATUTS = ['Nouveau','Contacté','En échange','Réflexion','À relancer','Rendez-vous fixé','Pas maintenant','Non prioritaire'];
+const CANAUX = ['Email','LinkedIn','Téléphone','SMS','WhatsApp'];
+const TONS = ['Direct','Consultatif','Chaleureux','Premium','Très concis'];
+const OBJECTIFS = ['Obtenir une réponse','Reprogrammer un échange','Obtenir un rendez-vous','Clarifier une objection','Réactiver une opportunité'];
+const OBJECTIONS = ['Prix','Timing','Besoin de réfléchir','Comparaison avec une autre solution','Décision à plusieurs','Manque de priorité','Pas de réponse','Autre'];
+const DAY_KEYS = ['J0','J1','J3','J7','J14','J30'];
+const DAY_META = {
+  J0:{titre:'Confirmation & prochaine étape', but:'Résumer le contexte et faciliter la prochaine action.'},
+  J1:{titre:'Clarification', but:"Réduire une zone d'incertitude ou répondre à une question."},
+  J3:{titre:'Valeur', but:'Apporter un nouvel élément utile au prospect.'},
+  J7:{titre:'Objection', but:'Aborder avec tact le principal frein identifié.'},
+  J14:{titre:'Réouverture', but:'Revenir avec un angle différent et simple.'},
+  J30:{titre:'Réactivation', but:'Ouvrir une dernière nouvelle occasion de reprendre la conversation.'}
+};
+const TONE_OPEN = {'Direct':'Bonjour [Prénom],','Consultatif':'Bonjour [Prénom],','Chaleureux':'Bonjour [Prénom],','Premium':'Bonjour [Prénom],','Très concis':'[Prénom],'};
+const TONE_CLOSE = {'Direct':'Bonne journée,','Consultatif':"Au plaisir d'échanger,",'Chaleureux':'Belle journée à vous,','Premium':'Bien à vous,','Très concis':'Merci,'};
+
+const DAY_BODIES = {
+  J0:[
+    "Je te confirme la bonne réception de ta demande concernant [Besoin évoqué]. Pour avancer, je te propose [Prochaine étape]. Tu peux réserver un créneau ici : [Lien de rendez-vous].",
+    "Merci pour ton message au sujet de [Besoin évoqué]. Voici la prochaine étape que je te propose : [Prochaine étape].",
+    "Je reviens vers toi suite à ta demande sur [Besoin évoqué]. On peut avancer avec [Prochaine étape] — dis-moi ce qui te convient."
+  ],
+  J1:[
+    "En repensant à [Point discuté], une précision pourrait t'être utile. Est-ce que [Besoin évoqué] reste bien la priorité de ton côté ?",
+    "Je voulais m'assurer d'avoir bien compris ta situation concernant [Point discuté]. Peux-tu me confirmer si [Besoin évoqué] est toujours d'actualité ?",
+    "Petite question pour avancer sereinement : sur [Point discuté], qu'est-ce qui compte le plus pour toi aujourd'hui ?"
+  ],
+  J3:[
+    "Je pensais à ta situation sur [Besoin évoqué] et je voulais partager un élément qui pourrait t'être utile pour avancer, indépendamment de notre échange.",
+    "Un point qui aide souvent sur des sujets comme [Besoin évoqué] : [Point discuté]. Je peux t'en dire plus si utile.",
+    "Je voulais revenir vers toi avec un angle différent sur [Besoin évoqué], qui peut clarifier la suite pour toi."
+  ],
+  J14:[
+    "Cela fait un moment que nous n'avons pas échangé sur [Besoin évoqué]. Où en es-tu de ton côté ?",
+    "Je reviens vers toi avec un angle un peu différent sur [Besoin évoqué] — dis-moi si le contexte a changé.",
+    "Je voulais reprendre contact simplement : est-ce que [Besoin évoqué] reste un sujet d'actualité pour toi ?"
+  ],
+  J30:[
+    "Cela fait quelques semaines maintenant. Si [Besoin évoqué] reste une priorité, je reste disponible pour en reparler. Sinon, dis-le-moi simplement.",
+    "Dernier message de ma part sur ce sujet : si tu veux reprendre l'échange sur [Besoin évoqué], je suis disponible. Sinon, bonne continuation.",
+    "Je referme ce suivi de mon côté, sauf si tu souhaites qu'on reparle de [Besoin évoqué] — la porte reste ouverte."
+  ]
+};
+
+const OBJECTION_MSGS = {
+  'Prix':[
+    "Je me doute que le budget est un point d'attention sur ce projet. Ce qui compte souvent, c'est le retour attendu par rapport à [Besoin évoqué] — je peux t'expliquer comment on cadre ça.",
+    "Le prix soulève souvent des questions légitimes. Veux-tu qu'on regarde ensemble ce qui est vraiment inclus par rapport à [Besoin évoqué] ?",
+    "Si le budget est le point qui freine, dis-le-moi simplement — on peut regarder les options adaptées à ta situation."
+  ],
+  'Timing':[
+    "Le timing peut évidemment jouer sur ce type de décision. Est-ce que ce serait utile qu'on refixe un point à un moment plus adapté pour toi ?",
+    "Je comprends que ce n'est peut-être pas le bon moment. Souhaites-tu qu'on se recontacte à une date plus pertinente ?",
+    "Si le moment n'est pas idéal, on peut simplement caler la suite plus tard — dis-moi ce qui te conviendrait."
+  ],
+  'Besoin de réfléchir':[
+    "C'est tout à fait normal de prendre le temps de réfléchir. Y a-t-il un point précis sur [Besoin évoqué] que je peux clarifier pour t'aider à avancer ?",
+    "Prends le temps qu'il te faut. S'il y a une question qui reste en suspens sur [Point discuté], je suis disponible.",
+    "Pour t'aider dans ta réflexion, veux-tu que je t'envoie un complément d'information sur [Besoin évoqué] ?"
+  ],
+  'Comparaison avec une autre solution':[
+    "C'est une bonne chose de comparer plusieurs options. Si utile, je peux t'expliquer ce qui différencie notre approche sur [Besoin évoqué].",
+    "Chaque solution a ses forces. Veux-tu qu'on regarde ensemble ce qui compte le plus pour ta situation avant de trancher ?",
+    "Si tu compares plusieurs pistes, dis-moi ce qui est important pour toi — je pourrai te dire honnêtement si on y répond bien."
+  ],
+  'Décision à plusieurs':[
+    "Je comprends que la décision implique d'autres personnes. Souhaites-tu un résumé clair pour faciliter l'échange en interne sur [Besoin évoqué] ?",
+    "Si cela peut aider à présenter le sujet en interne, je peux préparer un support synthétique sur [Besoin évoqué].",
+    "Prends le temps d'échanger avec les personnes concernées. Je reste disponible si des questions se posent sur [Besoin évoqué]."
+  ],
+  'Manque de priorité':[
+    "Je comprends que ce sujet n'est peut-être pas la priorité du moment. Souhaites-tu qu'on en reparle à un moment plus adapté ?",
+    "Si [Besoin évoqué] passe après d'autres priorités actuellement, c'est tout à fait compréhensible. On peut reprendre contact plus tard.",
+    "Pas de souci si ce n'est pas le moment. Dis-moi simplement quand ce sujet redeviendra pertinent pour toi."
+  ],
+  'Pas de réponse':[
+    "Je n'ai pas eu de retour de ta part, ce qui arrive souvent avec les emplois du temps chargés. Un simple mot suffit pour savoir où on en est sur [Besoin évoqué].",
+    "Je me permets un dernier message court : es-tu toujours intéressé par [Besoin évoqué], ou dois-je clore le suivi de mon côté ?",
+    "Pas de retour de ta part pour l'instant, aucun souci. Dis-moi juste si je dois garder ce sujet ouvert ou non."
+  ],
+  'Autre':[
+    "Je voulais revenir vers toi sur [Besoin évoqué]. N'hésite pas à me partager ce qui freine actuellement, j'adapterai ma proposition.",
+    "S'il y a un point qui bloque sur [Besoin évoqué], dis-le-moi directement — je préfère qu'on en discute plutôt que de deviner.",
+    "Je reste à l'écoute si un frein particulier existe sur [Besoin évoqué]. On peut en discuter simplement."
+  ]
+};
+
+const ALT_SHORT = {
+  J0:"[Prénom], bien reçu pour [Besoin évoqué]. Prochaine étape : [Prochaine étape]. [Lien de rendez-vous]",
+  J1:"[Prénom], une précision utile sur [Point discuté] ?",
+  J3:"[Prénom], un élément qui peut t'aider sur [Besoin évoqué], si utile.",
+  J7:"[Prénom], un point vous freine peut-être sur [Besoin évoqué] — dis-moi lequel.",
+  J14:"[Prénom], toujours d'actualité, [Besoin évoqué] ?",
+  J30:"[Prénom], je referme le suivi sauf signe contraire de ta part."
+};
+
+/* 25 relances anti-silence */
+const LIBRARY_25 = [
+  {cat:'Après premier contact', canal:'Email', titre:'Confirmation claire', msg:"Merci pour notre échange sur [Besoin évoqué]. Pour résumer, la prochaine étape est [Prochaine étape]. Dis-moi si cela te convient."},
+  {cat:'Après premier contact', canal:'LinkedIn', titre:'Suivi léger', msg:"[Prénom], ravi d'avoir échangé. Je reviens vers toi avec [Prochaine étape] dès que tu es prêt(e)."},
+  {cat:'Après premier contact', canal:'Email', titre:'Clarification rapide', msg:"Une question simple pour avancer : sur [Point discuté], quel est ton principal objectif à court terme ?"},
+  {cat:'Après premier contact', canal:'Téléphone', titre:'Rappel de créneau', msg:"Je te propose un court appel pour clarifier [Besoin évoqué]. Voici mes disponibilités : [Lien de rendez-vous]."},
+  {cat:'Après premier contact', canal:'SMS', titre:'Message concis', msg:"[Prénom], merci pour l'échange sur [Besoin évoqué]. Je t'envoie [Prochaine étape] par email."},
+  {cat:'Après proposition ou devis', canal:'Email', titre:'Résumé de la proposition', msg:"Je t'ai transmis une proposition concernant [Besoin évoqué]. As-tu eu l'occasion d'y jeter un œil ? Je reste disponible pour toute question."},
+  {cat:'Après proposition ou devis', canal:'Email', titre:'Point de clarification', msg:"S'il y a un point de la proposition qui mérite d'être clarifié sur [Point discuté], n'hésite pas à me le dire."},
+  {cat:'Après proposition ou devis', canal:'LinkedIn', titre:'Angle simplifié', msg:"[Prénom], pour simplifier la lecture de la proposition, je peux te faire un résumé en 3 points si utile."},
+  {cat:'Après proposition ou devis', canal:'Téléphone', titre:'Appel de suivi', msg:"Souhaites-tu qu'on fasse un point de 10 minutes pour parcourir la proposition ensemble ? [Lien de rendez-vous]"},
+  {cat:'Après proposition ou devis', canal:'Email', titre:'Fermeture élégante', msg:"Si la proposition ne correspond finalement pas à [Besoin évoqué], dis-le-moi simplement — je préfère le savoir plutôt que de relancer sans raison."},
+  {cat:'Prospect en réflexion', canal:'Email', titre:'Respect du temps de réflexion', msg:"Prends le temps qu'il te faut pour réfléchir à [Besoin évoqué]. Je reste disponible si une question se présente."},
+  {cat:'Prospect en réflexion', canal:'LinkedIn', titre:'Ressource utile', msg:"En complément de notre échange sur [Besoin évoqué], voici un élément qui peut t'aider dans ta réflexion : [Point discuté]."},
+  {cat:'Prospect en réflexion', canal:'Email', titre:'Question de clarification', msg:"Pour t'aider à avancer, qu'est-ce qui te ferait pencher d'un côté ou de l'autre sur [Besoin évoqué] ?"},
+  {cat:'Prospect en réflexion', canal:'SMS', titre:'Relance courte', msg:"[Prénom], toujours en réflexion sur [Besoin évoqué] ? Je reste dispo si besoin."},
+  {cat:'Prospect en réflexion', canal:'Email', titre:'Changement de contexte', msg:"Si ta situation a évolué depuis notre dernier échange sur [Besoin évoqué], je peux ajuster ma proposition en conséquence."},
+  {cat:'Pas maintenant / recontacter plus tard', canal:'Email', titre:'Reprise programmée', msg:"Comme convenu, je reviens vers toi au sujet de [Besoin évoqué]. Est-ce toujours le bon moment pour en reparler ?"},
+  {cat:'Pas maintenant / recontacter plus tard', canal:'LinkedIn', titre:'Contact discret', msg:"[Prénom], je garde [Besoin évoqué] de côté de mon côté. Dis-moi quand ce sera pertinent d'en reparler."},
+  {cat:'Pas maintenant / recontacter plus tard', canal:'Email', titre:'Question de timing', msg:"Y a-t-il une période plus adaptée pour reparler de [Besoin évoqué] ? Je peux caler un rappel à ce moment-là."},
+  {cat:'Pas maintenant / recontacter plus tard', canal:'Téléphone', titre:'Point rapide', msg:"Un point de 5 minutes suffirait pour voir où en est [Besoin évoqué] de ton côté. [Lien de rendez-vous]"},
+  {cat:'Pas maintenant / recontacter plus tard', canal:'Email', titre:'Fermeture ouverte', msg:"Je referme ce suivi pour le moment. N'hésite pas à revenir vers moi dès que [Besoin évoqué] redevient une priorité."},
+  {cat:"Réactivation d'un ancien lead", canal:'Email', titre:'Reprise de contact', msg:"Cela fait un moment que nous n'avons pas échangé. Où en es-tu aujourd'hui sur [Besoin évoqué] ?"},
+  {cat:"Réactivation d'un ancien lead", canal:'LinkedIn', titre:'Nouvel angle', msg:"[Prénom], je reviens vers toi avec un angle différent sur [Besoin évoqué] — dis-moi si le contexte a changé."},
+  {cat:"Réactivation d'un ancien lead", canal:'Email', titre:'Question ouverte', msg:"Est-ce que [Besoin évoqué] reste un sujet d'actualité pour toi, ou la situation a-t-elle changé ?"},
+  {cat:"Réactivation d'un ancien lead", canal:'SMS', titre:'Relance directe', msg:"[Prénom], toujours d'actualité pour toi, [Besoin évoqué] ? Simple question, sans engagement."},
+  {cat:"Réactivation d'un ancien lead", canal:'Email', titre:'Dernière ouverture', msg:"Je te recontacte une dernière fois sur [Besoin évoqué]. Si le sujet t'intéresse toujours, je reste disponible pour en reparler."}
+];
+
+const OBJECTIONS_6 = [
+  {nom:'Prix', peut:"le prix peut sembler élevé par rapport à ce qui est perçu jusqu'ici, ou un doute sur le retour attendu.", objectif:"clarifier ce qui est inclus et le lien avec le résultat recherché.", eviter:"justifier le prix en baissant la valeur perçue de l'offre.",
+    court:"Le budget est un point légitime. Veux-tu qu'on regarde ensemble ce qui est inclus ?",
+    email:"Je comprends que le budget soit un point d'attention. Ce qui compte souvent, c'est le lien entre l'investissement et [Besoin évoqué]. Je peux détailler ce qui est inclus si utile.",
+    linkedin:"[Prénom], le prix est un point important. On peut en reparler pour voir ce qui correspond le mieux à ta situation.",
+    clarif:"Qu'est-ce qui, dans le prix actuel, te semble le plus éloigné de ce que tu attendais ?"},
+  {nom:'Timing', peut:"le moment ne semble pas opportun, sans que cela remette en cause l'intérêt pour l'offre.", objectif:"identifier un moment plus adapté sans perdre le contact.", eviter:"insister pour accélérer une décision qui n'est pas prête.",
+    court:"Pas de souci si le moment n'est pas idéal. On recale ça quand tu veux.",
+    email:"Je comprends que ce n'est peut-être pas le bon moment pour avancer sur [Besoin évoqué]. Souhaites-tu qu'on refixe un point à une date plus adaptée ?",
+    linkedin:"[Prénom], si le timing ne convient pas maintenant, dis-moi une période plus pertinente pour toi.",
+    clarif:"Qu'est-ce qui rendrait le moment plus favorable pour toi ?"},
+  {nom:"Je dois réfléchir", peut:"un besoin réel de prendre du recul, ou une zone d'incertitude non exprimée.", objectif:"laisser l'espace nécessaire tout en restant disponible pour clarifier.", eviter:"relancer de façon pressante pendant la réflexion.",
+    court:"Prends le temps qu'il te faut, je reste disponible si besoin.",
+    email:"C'est tout à fait normal de vouloir réfléchir. S'il y a un point précis sur [Besoin évoqué] que je peux éclaircir pour t'aider, n'hésite pas.",
+    linkedin:"[Prénom], prends le temps nécessaire. Je reste dispo si une question se pose entre-temps.",
+    clarif:"Y a-t-il un point spécifique qui te fait hésiter actuellement ?"},
+  {nom:'Comparaison avec une autre solution', peut:"le prospect évalue plusieurs options avant de trancher.", objectif:"aider à clarifier les critères de choix sans dénigrer la concurrence.", eviter:"critiquer directement une solution concurrente.",
+    court:"C'est une bonne chose de comparer. Qu'est-ce qui compte le plus pour toi dans ce choix ?",
+    email:"Comparer plusieurs solutions est une démarche saine. Si utile, je peux t'expliquer ce qui différencie notre approche sur [Besoin évoqué].",
+    linkedin:"[Prénom], si tu compares plusieurs pistes, dis-moi ce qui est important pour toi — je te répondrai honnêtement.",
+    clarif:"Quels sont les critères qui compteront le plus dans ta décision finale ?"},
+  {nom:'Décision à plusieurs', peut:"la décision implique d'autres parties prenantes en interne.", objectif:"faciliter la présentation du sujet en interne.", eviter:"mettre la pression pour obtenir une réponse immédiate seul.",
+    court:"Je peux préparer un résumé pour faciliter l'échange en interne, si utile.",
+    email:"Je comprends que la décision implique d'autres personnes. Souhaites-tu un support synthétique sur [Besoin évoqué] pour faciliter la discussion en interne ?",
+    linkedin:"[Prénom], dis-moi si un résumé clair peut t'aider à présenter le sujet à ton équipe.",
+    clarif:"Qui sont les autres personnes impliquées dans cette décision ?"},
+  {nom:'Absence de réponse', peut:"un agenda chargé, une priorité différente, ou un intérêt qui s'est éteint.", objectif:"obtenir une clarté simple sans forcer la relation.", eviter:"multiplier les relances rapprochées et insistantes.",
+    court:"Un simple mot suffit pour savoir où on en est.",
+    email:"Je n'ai pas eu de retour de ta part, ce qui arrive souvent avec les emplois du temps chargés. Es-tu toujours intéressé(e) par [Besoin évoqué] ?",
+    linkedin:"[Prénom], dernier message de ma part : dois-je garder ce sujet ouvert ou le clore de mon côté ?",
+    clarif:"Est-ce que ce sujet reste une priorité pour toi actuellement ?"}
+];
+
+/* =========================================================
+   STORAGE
+========================================================= */
+const SCHEMA_VERSION = 1;
+const APP_VERSION = '1.0.0';
+const STORAGE_KEY = 'leadsDormants.state.v1';
+
+function defaultState(){
+  return {
+    schemaVersion: SCHEMA_VERSION,
+    appVersion: APP_VERSION,
+    createdAt: Date.now(),
+    updatedAt: Date.now(),
+    onboardingSeen: false,
+    profil: {
+      entreprise:'', offre:'', prixOffre:'', typeProspect:'', resultatOffre:'',
+      sourcesLeads:[], cycleVente:'', canaux:[], objections:[], ton:'', objectifPrincipal:''
+    },
+    leads: [],
+    quickInventory: {actif:false, total:'', jamaisRelance:'', relanceUne:'', reflexion:'', recontacterPlusTard:'', froid:''},
+    sequence: null,
+    sourceSnapshot: null,
+    calculator: {leads:'', valeurMoyenne:'', tauxQualifies:'', tauxConversion:'', savedAt:null},
+    checklist: {checked:{}, savedAt:null},
+    bonusProgress: {calculator:false, library:false, pipeline:false, objections:false, checklist:false},
+    notes:'',
+    demo:false
+  };
+}
+
+const Storage = {
+  load(){
+    try{
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if(!raw) return null;
+      const parsed = JSON.parse(raw);
+      if(!parsed || typeof parsed!=='object' || !('schemaVersion' in parsed)) return null;
+      return Storage.migrate(parsed);
+    }catch(e){
+      console.warn('Données locales corrompues, réinitialisation prudente.', e);
+      return null;
+    }
+  },
+  migrate(data){
+    const base = defaultState();
+    const merged = Object.assign({}, base, data);
+    merged.profil = Object.assign({}, base.profil, data.profil||{});
+    merged.quickInventory = Object.assign({}, base.quickInventory, data.quickInventory||{});
+    merged.calculator = Object.assign({}, base.calculator, data.calculator||{});
+    merged.checklist = Object.assign({}, base.checklist, data.checklist||{});
+    merged.bonusProgress = Object.assign({}, base.bonusProgress, data.bonusProgress||{});
+    merged.leads = Array.isArray(data.leads) ? data.leads : [];
+    merged.schemaVersion = SCHEMA_VERSION;
+    return merged;
+  },
+  save(state){
+    try{
+      state.updatedAt = Date.now();
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      return true;
+    }catch(e){
+      console.warn('Sauvegarde impossible', e);
+      UI.toast("Sauvegarde impossible (stockage plein ou indisponible).");
+      return false;
+    }
+  },
+  clear(){ try{ localStorage.removeItem(STORAGE_KEY); }catch(e){} },
+  isValidImport(obj){
+    return obj && typeof obj==='object' && ('profil' in obj) && ('leads' in obj) && Array.isArray(obj.leads);
+  }
+};
+
+/* =========================================================
+   STATE
+========================================================= */
+let hadExistingSession = false;
+const StateM = {
+  data: null,
+  init(){
+    const loaded = Storage.load();
+    if(loaded){ this.data = loaded; hadExistingSession = true; }
+    else{ this.data = defaultState(); }
+  },
+  get(){ return this.data; },
+  save(){ Storage.save(this.data); },
+  set(path, value){ Utils.setPath(this.data, path, value); this.save(); },
+  reset(){ this.data = defaultState(); Storage.save(this.data); }
+};
+
+/* =========================================================
+   TOAST + MODAL (UI helpers)
+========================================================= */
+const UI = {
+  toastTimer:null,
+  toast(msg){
+    const c = document.getElementById('toast-container');
+    const el = document.createElement('div');
+    el.className='toast';
+    el.textContent = msg;
+    c.appendChild(el);
+    setTimeout(()=>{ el.style.transition='opacity .3s'; el.style.opacity='0'; setTimeout(()=>el.remove(),320); }, 2200);
+  },
+  modal({title, bodyHtml, actions}){
+    const root = document.getElementById('modal-root');
+    root.innerHTML = '';
+    const overlay = document.createElement('div');
+    overlay.className='modal-overlay';
+    overlay.setAttribute('role','dialog');
+    overlay.setAttribute('aria-modal','true');
+    const box = document.createElement('div');
+    box.className='modal-box';
+    box.innerHTML = '<button type="button" class="modal-close" data-action="closeModal" aria-label="Fermer">✕</button>'+
+      '<h2>'+Utils.escapeHtml(title)+'</h2>'+
+      '<div class="modal-content">'+bodyHtml+'</div>'+
+      '<div class="actions-row" id="modal-actions"></div>';
+    overlay.appendChild(box);
+    root.appendChild(overlay);
+    const actionsWrap = box.querySelector('#modal-actions');
+    (actions||[]).forEach(a=>{
+      const b = document.createElement('button');
+      b.type='button';
+      b.className='btn '+(a.className||'secondary');
+      b.textContent = a.label;
+      b.addEventListener('click', ()=>{ if(a.onClick) a.onClick(); if(a.close!==false) UI.closeModal(); });
+      actionsWrap.appendChild(b);
+    });
+    overlay.addEventListener('click', (e)=>{ if(e.target===overlay) UI.closeModal(); });
+    document.addEventListener('keydown', UI._escHandler = (e)=>{ if(e.key==='Escape') UI.closeModal(); });
+    const focusable = box.querySelector('button, input, textarea, select');
+    if(focusable) focusable.focus();
+  },
+  closeModal(){
+    document.getElementById('modal-root').innerHTML = '';
+    if(UI._escHandler) document.removeEventListener('keydown', UI._escHandler);
+  },
+  confirm({title, message, confirmLabel, danger, onConfirm}){
+    UI.modal({
+      title,
+      bodyHtml: '<p style="color:var(--text-dim);font-size:.92rem;">'+Utils.escapeHtml(message)+'</p>',
+      actions:[
+        {label:'Annuler', className:'secondary'},
+        {label: confirmLabel||'Confirmer', className: danger?'danger':'', onClick:onConfirm}
+      ]
+    });
+  }
+};
+
+/* =========================================================
+   LEAD MANAGER
+========================================================= */
+const LeadManager = {
+  add(data){
+    const st = StateM.get();
+    const lead = Object.assign({
+      id: Utils.uid(),
+      nom:'', source:'Autre', valeur:'', dernierContact:'', statut:'Nouveau',
+      derniereInteraction:'', objection:'', prochaineAction:'', echeance:'', notes:'',
+      createdAt: Date.now(), updatedAt: Date.now()
+    }, data);
+    st.leads.unshift(lead);
+    StateM.save();
+    return lead;
+  },
+  update(id, data){
+    const st = StateM.get();
+    const lead = st.leads.find(l=>l.id===id);
+    if(!lead) return;
+    Object.assign(lead, data, {updatedAt:Date.now()});
+    StateM.save();
+  },
+  remove(id){
+    const st = StateM.get();
+    st.leads = st.leads.filter(l=>l.id!==id);
+    StateM.save();
+  },
+  duplicate(id){
+    const st = StateM.get();
+    const lead = st.leads.find(l=>l.id===id);
+    if(!lead) return;
+    const copy = Object.assign({}, lead, {id:Utils.uid(), nom: lead.nom + ' (copie)', createdAt:Date.now(), updatedAt:Date.now()});
+    st.leads.unshift(copy);
+    StateM.save();
+  },
+  score(lead){
+    let total = 0;
+    const days = Utils.daysBetween(lead.dernierContact);
+    if(days!==null){
+      if(days<=3) total+=3; else if(days<=7) total+=2; else if(days<=14) total+=1;
+    }
+    const val = Utils.toNumber(lead.valeur);
+    if(val>=5000) total+=3; else if(val>=2000) total+=2; else if(val>0) total+=1;
+    const statutScore = {'Rendez-vous fixé':4,'En échange':3,'À relancer':3,'Réflexion':2,'Contacté':2,'Nouveau':1,'Pas maintenant':0,'Non prioritaire':-1};
+    total += (statutScore[lead.statut]!==undefined?statutScore[lead.statut]:0);
+    if(lead.objection==='Pas de réponse') total -= 1;
+    const until = Utils.daysUntil(lead.echeance);
+    if(until!==null){ if(until<=0) total+=2; else if(until<=7) total+=1; }
+    if(total>=7) return {label:'Priorité haute', cls:'high'};
+    if(total>=4) return {label:'Priorité moyenne', cls:'mid'};
+    return {label:'À réévaluer', cls:'low'};
+  },
+  filtered(state, filters){
+    let list = state.leads.slice();
+    if(filters.search){
+      const q = filters.search.toLowerCase();
+      list = list.filter(l=> (l.nom||'').toLowerCase().includes(q) || (l.notes||'').toLowerCase().includes(q));
+    }
+    if(filters.statut) list = list.filter(l=>l.statut===filters.statut);
+    if(filters.source) list = list.filter(l=>l.source===filters.source);
+    if(filters.sort==='valeur-desc') list.sort((a,b)=>Utils.toNumber(b.valeur)-Utils.toNumber(a.valeur));
+    else if(filters.sort==='valeur-asc') list.sort((a,b)=>Utils.toNumber(a.valeur)-Utils.toNumber(b.valeur));
+    else if(filters.sort==='recent') list.sort((a,b)=> new Date(b.dernierContact||0) - new Date(a.dernierContact||0));
+    else if(filters.sort==='priorite'){
+      const rank = {high:0,mid:1,low:2};
+      list.sort((a,b)=> rank[LeadManager.score(a).cls]-rank[LeadManager.score(b).cls]);
+    }
+    return list;
+  }
+};
+
+/* =========================================================
+   SEQUENCE GENERATOR
+========================================================= */
+const SequenceGenerator = {
+  pickCanal(profil, index){
+    if(profil.canaux && profil.canaux.length) return profil.canaux[index % profil.canaux.length];
+    return 'Email';
+  },
+  buildMessage(day, profil, variantIndex){
+    const tone = profil.ton || 'Consultatif';
+    const open = TONE_OPEN[tone] || TONE_OPEN['Consultatif'];
+    const close = TONE_CLOSE[tone] || TONE_CLOSE['Consultatif'];
+    let bodies;
+    if(day==='J7'){
+      const obj = (profil.objections && profil.objections[0]) || 'Autre';
+      bodies = OBJECTION_MSGS[obj] || OBJECTION_MSGS['Autre'];
+    } else {
+      bodies = DAY_BODIES[day];
+    }
+    const idx = ((variantIndex||0) % bodies.length + bodies.length) % bodies.length;
+    let body = bodies[idx];
+    if(tone==='Très concis'){
+      body = body.split('. ')[0] + (body.includes('.')?'.':'');
+    }
+    return open + '\n\n' + body + '\n\n' + close + '\n[Prénom]';
+  },
+  buildCard(day, profil, index, variantIndex){
+    return {
+      day,
+      objectif: DAY_META[day].but,
+      canal: SequenceGenerator.pickCanal(profil, index),
+      message: SequenceGenerator.buildMessage(day, profil, variantIndex||0),
+      pourquoi: DAY_META[day].but,
+      alternative: ALT_SHORT[day],
+      notes:'',
+      manuallyEdited:false,
+      variantIndex: variantIndex||0
+    };
+  },
+  generate(profil){
+    const seq = {generatedAt: Date.now()};
+    DAY_KEYS.forEach((day,i)=>{ seq[day] = SequenceGenerator.buildCard(day, profil, i, 0); });
+    return seq;
+  },
+  regenerateStep(state, day){
+    const seq = state.sequence;
+    if(!seq) return;
+    const card = seq[day];
+    const nextVariant = (card.variantIndex||0) + 1;
+    const fresh = SequenceGenerator.buildCard(day, state.profil, DAY_KEYS.indexOf(day), nextVariant);
+    fresh.notes = card.notes;
+    seq[day] = fresh;
+    StateM.save();
+  },
+  snapshot(profil){
+    return JSON.stringify({offre:profil.offre, prixOffre:profil.prixOffre, typeProspect:profil.typeProspect, objections:profil.objections, canaux:profil.canaux, ton:profil.ton, objectifPrincipal:profil.objectifPrincipal});
+  },
+  isStale(state){
+    if(!state.sequence || !state.sourceSnapshot) return false;
+    return SequenceGenerator.snapshot(state.profil) !== state.sourceSnapshot;
+  }
+};
+
+/* =========================================================
+   CALCULATOR
+========================================================= */
+const Calculator = {
+  compute(inputs){
+    const leads = Math.max(0, Math.round(Utils.toNumber(inputs.leads)));
+    const valeurMoyenne = Math.max(0, Utils.toNumber(inputs.valeurMoyenne));
+    const tauxQualifies = Utils.clampPercent(inputs.tauxQualifies);
+    const tauxConversion = Utils.clampPercent(inputs.tauxConversion);
+    function scenario(mult){
+      const qualifies = leads * (tauxQualifies/100) * mult;
+      const ventes = qualifies * (tauxConversion/100);
+      const ca = ventes * valeurMoyenne;
+      return {qualifies, ventes, ca};
+    }
+    return {
+      prudent: scenario(0.7),
+      median: scenario(1),
+      ambitieux: scenario(1.3)
+    };
+  }
+};
+
+/* =========================================================
+   ROUTER
+========================================================= */
+const ROUTES = ['home','leads','offer','sequence','results','bonus','bonus-calculator','bonus-library','bonus-pipeline','bonus-objections','bonus-checklist','exports'];
+let previousHash = 'home';
+let currentHash = 'home';
+
+function nextIncompleteRoute(){
+  const st = StateM.get();
+  const hasLeads = st.leads.length>0 || Utils.toNumber(st.quickInventory.total)>0;
+  if(!hasLeads) return 'leads';
+  if(!st.profil.offre || !st.profil.prixOffre || !st.profil.typeProspect) return 'offer';
+  if(!st.sequence) return 'sequence';
+  return 'results';
+}
+
+function navigate(hash){
+  location.hash = '#' + hash;
+}
+
+function route(){
+  let hash = (location.hash || '#home').replace('#','');
+  if(hash==='system'){
+    hash = nextIncompleteRoute();
+    history.replaceState(null, '', '#' + hash);
+  }
+  if(!ROUTES.includes(hash)) hash = 'home';
+  previousHash = currentHash;
+  currentHash = hash;
+  renderRoute(hash);
+  updateNavActive(hash);
+  window.scrollTo(0,0);
+}
+
+function updateNavActive(hash){
+  const group = (['leads','offer','sequence','results'].includes(hash)) ? 'system'
+    : (hash.startsWith('bonus')) ? 'bonus'
+    : (hash==='exports') ? 'exports'
+    : 'home';
+  document.querySelectorAll('[data-nav]').forEach(btn=>{
+    btn.classList.toggle('active', btn.dataset.nav===group);
+  });
+}
+
+/* =========================================================
+   RENDER — shared fragments
+========================================================= */
+function headerBar(title, sub, opts){
+  opts = opts||{};
+  let crumbs = '';
+  if(opts.back!==false){
+    crumbs = '<div class="crumbs no-print">'+
+      '<button type="button" class="btn-ghost-sm" data-action="goHome">🏠 Accueil</button>'+
+      (opts.showPrev!==false ? '<button type="button" class="btn-ghost-sm" data-action="goPrev">← Précédent</button>' : '')+
+      '</div>';
+  }
+  return '<div class="page-head"><div>'+crumbs+
+    '<h1 class="page-title">'+Utils.escapeHtml(title)+'</h1>'+
+    (sub?'<p class="page-sub">'+Utils.escapeHtml(sub)+'</p>':'')+
+    '</div></div>';
+}
+
+function stepperHtml(active){
+  const st = StateM.get();
+  const hasLeads = st.leads.length>0 || Utils.toNumber(st.quickInventory.total)>0;
+  const hasOffer = !!(st.profil.offre && st.profil.prixOffre && st.profil.typeProspect);
+  const hasSeq = !!st.sequence;
+  const steps = [
+    {key:'leads', label:'1. Mes leads', done:hasLeads},
+    {key:'offer', label:'2. Mon offre', done:hasOffer},
+    {key:'sequence', label:'3. Ma stratégie J0-J30', done:hasSeq},
+    {key:'results', label:'4. Mon plan final', done:hasSeq && hasOffer}
+  ];
+  return '<div class="stepper no-print" role="tablist" aria-label="Étapes du parcours">'+
+    steps.map(s=>'<button type="button" role="tab" class="step-pill '+(s.key===active?'current':'')+' '+(s.done?'done':'')+'" data-action="goto" data-route="'+s.key+'"><span class="num">'+(s.done?'✓':steps.indexOf(s)+1)+'</span>'+Utils.escapeHtml(s.label)+'</button>').join('')+
+    '</div>';
+}
+
+function progressGlobal(state){
+  const hasLeads = state.leads.length>0 || Utils.toNumber(state.quickInventory.total)>0;
+  const hasOffer = !!(state.profil.offre && state.profil.prixOffre && state.profil.typeProspect);
+  const hasSeq = !!state.sequence;
+  const hasPlan = hasSeq && hasOffer;
+  const done = [hasLeads,hasOffer,hasSeq,hasPlan].filter(Boolean).length;
+  return Math.round(done/4*100);
+}
+
+/* =========================================================
+   PAGES
+========================================================= */
+function pageHome(){
+  const st = StateM.get();
+  const pct = progressGlobal(st);
+  const leadCount = st.leads.length || Utils.toNumber(st.quickInventory.total) || 0;
+  const priorityCount = st.leads.filter(l=>LeadManager.score(l).cls==='high').length;
+  const hasCalc = !!st.calculator.savedAt;
+  let calcResume = null;
+  if(hasCalc){
+    const r = Calculator.compute(st.calculator);
+    calcResume = r.median.ca;
+  }
+  const seqStatus = st.sequence ? 'Généré' : 'Pas encore créé';
+
+  return ''+
+  '<section class="card">'+
+    '<h1 class="page-title">Tes leads sont là. Construisons le système pour mieux les suivre.</h1>'+
+    '<p class="page-sub">En quelques étapes, transforme ton pipeline actuel en plan de relance J0-J30 clair et réutilisable.</p>'+
+    '<div class="actions-row">'+
+      '<button type="button" class="btn" data-action="goto" data-route="'+nextIncompleteRoute()+'">'+(hadExistingSessionFlag()?'Reprendre là où je me suis arrêté':'Construire mon système')+'</button>'+
+      '<button type="button" class="btn secondary" data-action="goto" data-route="bonus">Voir les bonus</button>'+
+    '</div>'+
+  '</section>'+
+
+  '<section class="card">'+
+    '<div class="row between"><span class="card-title">Progression globale</span><span class="badge">'+pct+'%</span></div>'+
+    '<div class="progressbar"><div style="width:'+pct+'%"></div></div>'+
+    '<div class="grid cols-4" style="margin-top:18px;">'+
+      kpiBox('Leads enregistrés', leadCount)+
+      kpiBox('Priorité haute', priorityCount)+
+      kpiBox('Potentiel estimé', calcResume!=null?Utils.money(calcResume):'—')+
+      kpiBox('Plan J0-J30', seqStatus)+
+    '</div>'+
+  '</section>'+
+
+  '<section class="card">'+
+    '<div class="card-title">Actions rapides</div>'+
+    '<div class="grid cols-2">'+
+      quickAction('👤','Ajouter un lead','leads')+
+      quickAction('💤','Calculateur Argent Dormant','bonus-calculator')+
+      quickAction('🎁','Ouvrir les bonus','bonus')+
+      quickAction('📄','Voir mes résultats','results')+
+    '</div>'+
+  '</section>'+
+
+  '<h2 class="section-heading">Ton parcours</h2>'+
+  stepperHtml('')+
+  '<section class="grid cols-2">'+
+    parcoursCard('1','Mes leads','Identifie et priorise les prospects déjà acquis.','leads')+
+    parcoursCard('2','Mon offre','Renseigne ton offre, ton prix et ta cible.','offer')+
+    parcoursCard('3','Ma stratégie J0-J30','Génère ta séquence de 6 relances personnalisées.','sequence')+
+    parcoursCard('4','Mon plan final','Retrouve ton plan complet, prêt à appliquer.','results')+
+  '</section>'+
+
+  '<section class="card" style="margin-top:14px;">'+
+    '<div class="card-title">À propos de la méthode</div>'+
+    '<p style="color:var(--text-dim);font-size:.9rem;">Créé par Max — plus de 700 leads transformés en clients. La Méthode « Leads Déjà Payés » aide à mieux exploiter les prospects déjà acquis avant d\'augmenter le budget acquisition.</p>'+
+    '<div class="actions-row"><button type="button" class="btn secondary" data-action="loadDemo">Voir un exemple</button></div>'+
+  '</section>';
+}
+function hadExistingSessionFlag(){ return hadExistingSession; }
+
+function kpiBox(label, value){
+  return '<div style="background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius-md);padding:14px;">'+
+    '<div style="font-size:.72rem;color:var(--text-faint);font-weight:700;text-transform:uppercase;letter-spacing:.03em;">'+Utils.escapeHtml(label)+'</div>'+
+    '<div style="font-size:1.3rem;font-weight:800;margin-top:4px;">'+Utils.escapeHtml(String(value))+'</div>'+
+  '</div>';
+}
+function quickAction(icon,label,route){
+  return '<button type="button" class="card" style="text-align:left;cursor:pointer;width:100%;border:1px solid var(--border-soft);" data-action="goto" data-route="'+route+'">'+
+    '<div style="font-size:1.4rem;">'+icon+'</div><div style="font-weight:700;margin-top:6px;">'+Utils.escapeHtml(label)+'</div>'+
+  '</button>';
+}
+function parcoursCard(num,title,desc,route){
+  return '<button type="button" class="card" style="text-align:left;cursor:pointer;" data-action="goto" data-route="'+route+'">'+
+    '<div class="badge">Étape '+num+'</div>'+
+    '<div class="card-title" style="margin-top:8px;">'+Utils.escapeHtml(title)+'</div>'+
+    '<div class="card-sub">'+Utils.escapeHtml(desc)+'</div>'+
+  '</button>';
+}
+
+/* ---------- LEADS ---------- */
+let leadsUIState = {mode:'quick', filters:{search:'', statut:'', source:'', sort:''}, editingId:null, formOpen:false};
+
+function pageLeads(){
+  const st = StateM.get();
+  if(st.leads.length>0 && leadsUIState.mode==='quick' && !st.quickInventory.actif) leadsUIState.mode='detailed';
+  const modeQuick = leadsUIState.mode==='quick';
+  return headerBar('Mes leads', 'Identifie les prospects déjà acquis qui méritent une relance.')+
+  stepperHtml('leads')+
+  '<div class="row" style="margin-bottom:14px;">'+
+    '<button type="button" class="chip '+(modeQuick?'selected':'')+'" data-action="setLeadMode" data-mode="quick">Mode rapide</button>'+
+    '<button type="button" class="chip '+(!modeQuick?'selected':'')+'" data-action="setLeadMode" data-mode="detailed">Mode détaillé</button>'+
+  '</div>'+
+  (modeQuick ? quickInventoryForm(st) : detailedLeadsSection(st))+
+  '<div class="actions-row">'+
+    '<button type="button" class="btn secondary" data-action="goPrev">← Précédent</button>'+
+    '<button type="button" class="btn" data-action="goto" data-route="offer">Continuer →</button>'+
+  '</div>';
+}
+
+function quickInventoryForm(st){
+  const qi = st.quickInventory;
+  const fields = [
+    ['total','Nombre approximatif de leads'],
+    ['jamaisRelance','Jamais relancés'],
+    ['relanceUne','Relancés une fois'],
+    ['reflexion','En réflexion'],
+    ['recontacterPlusTard','À recontacter plus tard'],
+    ['froid','Considérés comme froids']
+  ];
+  return '<div class="card">'+
+    '<div class="card-title">Inventaire rapide</div>'+
+    '<div class="card-sub">Donne un ordre de grandeur. Tu pourras toujours passer en mode détaillé ensuite.</div>'+
+    '<div class="grid cols-2">'+
+    fields.map(([key,label])=>(
+      '<div class="field"><label class="field-label" for="qi-'+key+'">'+label+'</label>'+
+      '<input type="text" inputmode="numeric" id="qi-'+key+'" data-field="quickInventory.'+key+'" data-numeric="true" value="'+Utils.escapeHtml(qi[key])+'" placeholder="0"></div>'
+    )).join('')+
+    '</div>'+
+    '<p class="hint">Ces chiffres alimentent ton tableau de bord. Passe en mode détaillé quand tu veux suivre chaque prospect individuellement.</p>'+
+  '</div>';
+}
+
+function detailedLeadsSection(st){
+  const f = leadsUIState.filters;
+  const list = LeadManager.filtered(st, f);
+  let body;
+  if(st.leads.length===0){
+    body = '<div class="empty-state"><div class="ic">🌱</div><p>Commence avec un seul prospect. Tu pourras compléter ton pipeline ensuite.</p>'+
+      '<div class="actions-row" style="justify-content:center;"><button type="button" class="btn" data-action="openLeadForm">Ajouter un lead</button></div></div>';
+  } else if(list.length===0){
+    body = '<div class="empty-state"><div class="ic">🔍</div><p>Aucun lead ne correspond à ces filtres.</p></div>';
+  } else {
+    body = '<div class="stack">'+list.map(leadCard).join('')+'</div>';
+  }
+  return '<div class="card">'+
+    '<div class="row between"><div class="card-title">Mes prospects ('+st.leads.length+')</div>'+
+      '<button type="button" class="btn sm" data-action="openLeadForm">+ Ajouter un lead</button></div>'+
+    (st.leads.length>0 ? filtersBar(f) : '')+
+    body+
+  '</div>'+
+  (leadsUIState.formOpen ? leadFormCard(st) : '');
+}
+
+function filtersBar(f){
+  return '<div class="filters-bar">'+
+    '<input type="text" placeholder="Rechercher..." value="'+Utils.escapeHtml(f.search)+'" data-field-live="leadSearch" aria-label="Rechercher un lead">'+
+    '<select data-field-live="leadStatutFilter" aria-label="Filtrer par statut"><option value="">Tous statuts</option>'+STATUTS.map(s=>'<option '+(f.statut===s?'selected':'')+'>'+s+'</option>').join('')+'</select>'+
+    '<select data-field-live="leadSourceFilter" aria-label="Filtrer par source"><option value="">Toutes sources</option>'+SOURCES.map(s=>'<option '+(f.source===s?'selected':'')+'>'+s+'</option>').join('')+'</select>'+
+    '<select data-field-live="leadSort" aria-label="Trier">'+
+      '<option value="">Trier par...</option>'+
+      '<option value="priorite" '+(f.sort==='priorite'?'selected':'')+'>Priorité</option>'+
+      '<option value="valeur-desc" '+(f.sort==='valeur-desc'?'selected':'')+'>Valeur décroissante</option>'+
+      '<option value="valeur-asc" '+(f.sort==='valeur-asc'?'selected':'')+'>Valeur croissante</option>'+
+      '<option value="recent" '+(f.sort==='recent'?'selected':'')+'>Contact le plus récent</option>'+
+    '</select>'+
+  '</div>';
+}
+
+function leadCard(lead){
+  const score = LeadManager.score(lead);
+  return '<div class="lead-card">'+
+    '<div class="top"><div><h3>'+Utils.escapeHtml(lead.nom||'(Sans nom)')+'</h3></div>'+
+    '<span class="badge '+score.cls+'">'+score.label+' <span class="tooltip-icon" tabindex="0" title="Ce score sert uniquement à t\'aider à organiser ton attention. Tu gardes toujours la décision finale.">i</span></span></div>'+
+    '<div class="lead-meta">'+
+      '<span>'+Utils.escapeHtml(lead.source)+'</span>'+
+      '<span>'+Utils.escapeHtml(lead.statut)+'</span>'+
+      (lead.valeur?'<span>'+Utils.money(lead.valeur)+'</span>':'')+
+      (lead.dernierContact?'<span>Dernier contact : '+Utils.formatDate(lead.dernierContact)+'</span>':'')+
+      (lead.objection?'<span>Objection : '+Utils.escapeHtml(lead.objection)+'</span>':'')+
+    '</div>'+
+    (lead.prochaineAction?'<p class="hint" style="margin-top:8px;">Prochaine action : '+Utils.escapeHtml(lead.prochaineAction)+'</p>':'')+
+    '<div class="lead-actions">'+
+      '<button type="button" class="btn-ghost-sm" data-action="editLead" data-id="'+lead.id+'">Modifier</button>'+
+      '<button type="button" class="btn-ghost-sm" data-action="duplicateLead" data-id="'+lead.id+'">Dupliquer</button>'+
+      '<button type="button" class="btn-ghost-sm" data-action="deleteLead" data-id="'+lead.id+'">Supprimer</button>'+
+    '</div>'+
+  '</div>';
+}
+
+function leadFormCard(st){
+  const editing = leadsUIState.editingId ? st.leads.find(l=>l.id===leadsUIState.editingId) : null;
+  const l = editing || {nom:'',source:'Meta Ads',valeur:'',dernierContact:'',statut:'Nouveau',derniereInteraction:'',objection:'',prochaineAction:'',echeance:'',notes:''};
+  return '<div class="card" id="lead-form-card">'+
+    '<div class="card-title">'+(editing?'Modifier le lead':'Ajouter un lead')+'</div>'+
+    '<div class="grid cols-2">'+
+      field('text','lf-nom','Prénom ou société', l.nom, 'Ex : Julie Martin')+
+      selectField('lf-source','Source', SOURCES, l.source)+
+      field('number','lf-valeur','Valeur potentielle (€)', l.valeur, '3000')+
+      field('date','lf-dernierContact','Date du dernier contact', l.dernierContact, '')+
+      selectField('lf-statut','Statut', STATUTS, l.statut)+
+      field('text','lf-derniereInteraction','Dernière interaction', l.derniereInteraction, 'Ex : appel de découverte')+
+      selectField('lf-objection','Objection principale', ['(Aucune)'].concat(OBJECTIONS), l.objection||'(Aucune)')+
+      field('text','lf-prochaineAction','Prochaine action', l.prochaineAction, 'Ex : envoyer devis')+
+      field('date','lf-echeance','Échéance', l.echeance, '')+
+    '</div>'+
+    '<div class="field"><label class="field-label" for="lf-notes">Notes</label><textarea id="lf-notes">'+Utils.escapeHtml(l.notes)+'</textarea></div>'+
+    '<div id="lead-form-err" class="err" style="display:none;"></div>'+
+    '<div class="actions-row">'+
+      '<button type="button" class="btn secondary" data-action="cancelLeadForm">Annuler</button>'+
+      '<button type="button" class="btn" data-action="saveLeadForm" data-id="'+(editing?editing.id:'')+'">Enregistrer</button>'+
+    '</div>'+
+  '</div>';
+}
+function field(type,id,label,value,placeholder){
+  const isNumeric = type==='number';
+  const inputType = isNumeric ? 'text' : type;
+  const inputMode = isNumeric ? ' inputmode="decimal"' : '';
+  return '<div class="field"><label class="field-label" for="'+id+'">'+label+'</label>'+
+    '<input type="'+inputType+'"'+inputMode+' id="'+id+'" value="'+Utils.escapeHtml(value)+'" placeholder="'+Utils.escapeHtml(placeholder||'')+'"></div>';
+}
+function selectField(id,label,options,value){
+  return '<div class="field"><label class="field-label" for="'+id+'">'+label+'</label><select id="'+id+'">'+
+    options.map(o=>'<option '+(o===value?'selected':'')+'>'+Utils.escapeHtml(o)+'</option>').join('')+'</select></div>';
+}
+
+/* ---------- OFFER ---------- */
+function pageOffer(){
+  const st = StateM.get();
+  const p = st.profil;
+  return headerBar('Mon offre', 'Ces informations permettent de personnaliser ta séquence de relance.')+
+  stepperHtml('offer')+
+  '<div class="card">'+
+    field('text','of-entreprise','Nom de ton entreprise (facultatif)', p.entreprise, 'Ex : Studio Martin Conseil')+
+    field('text','of-offre','Que vends-tu ?', p.offre, 'Ex : Accompagnement acquisition B2B')+
+    field('number','of-prix','Quel est ton prix moyen ? (€)', p.prixOffre, '3000')+
+    field('text','of-typeProspect','À qui vends-tu ?', p.typeProspect, 'Ex : Dirigeants de PME de services')+
+    '<div class="field"><label class="field-label" for="of-resultat">Quel résultat ton offre aide-t-elle à obtenir ?</label><textarea id="of-resultat" placeholder="Ex : Plus de rendez-vous qualifiés chaque mois">'+Utils.escapeHtml(p.resultatOffre)+'</textarea></div>'+
+    '<div class="field"><label class="field-label">D\'où viennent principalement tes leads ?</label><div class="chip-group">'+chipGroup('of-sourcesLeads', SOURCES, p.sourcesLeads)+'</div></div>'+
+    selectField('of-cycle','Quel est ton cycle de décision moyen ?', ['','Moins d\'une semaine','1 à 2 semaines','2 à 4 semaines','1 à 3 mois','Plus de 3 mois'], p.cycleVente)+
+    '<div class="field"><label class="field-label">Quels canaux utilises-tu pour relancer ?</label><div class="chip-group">'+chipGroup('of-canaux', CANAUX, p.canaux)+'</div></div>'+
+    '<div class="field"><label class="field-label">Quelles objections rencontres-tu ?</label><div class="chip-group">'+chipGroup('of-objections', OBJECTIONS, p.objections)+'</div></div>'+
+    '<div class="field"><label class="field-label">Quel ton souhaites-tu utiliser ?</label><div class="chip-group">'+chipGroupSingle('of-ton', TONS, p.ton)+'</div></div>'+
+    '<div class="field"><label class="field-label">Quel est ton objectif principal ?</label><div class="chip-group">'+chipGroupSingle('of-objectif', OBJECTIFS, p.objectifPrincipal)+'</div></div>'+
+    '<div id="offer-form-err" class="err" style="display:none;"></div>'+
+  '</div>'+
+  '<div class="actions-row">'+
+    '<button type="button" class="btn secondary" data-action="goPrev">← Précédent</button>'+
+    '<button type="button" class="btn" data-action="saveOfferAndContinue">Enregistrer et continuer →</button>'+
+  '</div>';
+}
+function chipGroup(name, options, selected){
+  selected = selected||[];
+  return options.map(o=>'<button type="button" class="chip '+(selected.includes(o)?'selected':'')+'" data-action="toggleChipMulti" data-group="'+name+'" data-value="'+Utils.escapeHtml(o)+'">'+Utils.escapeHtml(o)+'</button>').join('');
+}
+function chipGroupSingle(name, options, selected){
+  return options.map(o=>'<button type="button" class="chip '+(selected===o?'selected':'')+'" data-action="toggleChipSingle" data-group="'+name+'" data-value="'+Utils.escapeHtml(o)+'">'+Utils.escapeHtml(o)+'</button>').join('');
+}
+let chipState = {'of-sourcesLeads':[], 'of-canaux':[], 'of-objections':[], 'of-ton':'', 'of-objectif':''};
+
+/* ---------- SEQUENCE ---------- */
+function pageSequence(){
+  const st = StateM.get();
+  if(!st.profil.offre || !st.profil.prixOffre){
+    return headerBar('Ma stratégie J0-J30','')+stepperHtml('sequence')+
+      '<div class="card"><div class="empty-state"><div class="ic">📋</div><p>Ton système J0-J30 apparaîtra ici dès que tu auras terminé les informations essentielles sur ton offre.</p>'+
+      '<div class="actions-row" style="justify-content:center;"><button type="button" class="btn" data-action="goto" data-route="offer">Compléter mon offre</button></div></div></div>';
+  }
+  const stale = SequenceGenerator.isStale(st);
+  let body;
+  if(!st.sequence){
+    body = '<div class="card"><div class="empty-state"><div class="ic">⚙️</div><p>Génère ta séquence personnalisée J0 → J1 → J3 → J7 → J14 → J30 à partir de ton offre et de ton contexte.</p>'+
+      '<div class="actions-row" style="justify-content:center;"><button type="button" class="btn" data-action="generateSequence">Générer mon système</button></div></div></div>';
+  } else {
+    body = (stale ? staleBanner() : '') +
+      '<div class="stack">'+DAY_KEYS.map(day=>sequenceCard(st.sequence[day])).join('')+'</div>'+
+      '<div class="actions-row"><button type="button" class="btn secondary" data-action="confirmRegenAll">Régénérer toute la séquence</button></div>';
+  }
+  return headerBar('Ma stratégie J0-J30','Six relances, chacune avec un objectif différent.')+
+  stepperHtml('sequence')+
+  body+
+  '<div class="actions-row">'+
+    '<button type="button" class="btn secondary" data-action="goPrev">← Précédent</button>'+
+    (st.sequence?'<button type="button" class="btn" data-action="goto" data-route="results">Voir mon plan final →</button>':'')+
+  '</div>';
+}
+function staleBanner(){
+  return '<div class="card" style="border-color:var(--accent);">'+
+    '<div class="card-title">Tes informations ont changé</div>'+
+    '<div class="card-sub">Veux-tu mettre à jour les suggestions J0-J30 en fonction de ta nouvelle offre ?</div>'+
+    '<div class="actions-row">'+
+      '<button type="button" class="btn" data-action="updateSequenceFromOffer">Mettre à jour</button>'+
+      '<button type="button" class="btn secondary" data-action="keepCurrentSequence">Garder mes messages actuels</button>'+
+    '</div></div>';
+}
+function sequenceCard(card){
+  return '<div class="msg-card">'+
+    '<div class="row between"><span class="day-tag">'+card.day+' — '+Utils.escapeHtml(DAY_META[card.day].titre)+'</span>'+
+    '<span class="badge">'+Utils.escapeHtml(card.canal)+'</span></div>'+
+    '<div class="why-box">Pourquoi cette relance : '+Utils.escapeHtml(card.pourquoi)+(card.manuallyEdited?' · <em>modifié manuellement</em>':'')+'</div>'+
+    '<div class="msg-body" id="msg-body-'+card.day+'" '+(card.editing?'':'')+'>'+Utils.nl2br(card.message)+'</div>'+
+    (card.editing? '<textarea id="edit-area-'+card.day+'">'+Utils.escapeHtml(card.message)+'</textarea><div class="actions-row"><button class="btn sm" data-action="saveManualEdit" data-day="'+card.day+'">Enregistrer</button><button class="btn sm secondary" data-action="cancelManualEdit" data-day="'+card.day+'">Annuler</button></div>' : '')+
+    '<p class="hint">Alternative courte : '+Utils.escapeHtml(card.alternative)+'</p>'+
+    '<div class="field"><label class="field-label" for="notes-'+card.day+'">Notes</label><textarea id="notes-'+card.day+'" data-day-notes="'+card.day+'" placeholder="Ajoute ici les détails que tu souhaites garder sous la main.">'+Utils.escapeHtml(card.notes)+'</textarea></div>'+
+    '<div class="msg-meta">'+
+      '<button type="button" class="btn sm copybtn" data-action="copyMessage" data-text="'+Utils.escapeHtml(card.message)+'">Copier</button>'+
+      '<button type="button" class="btn sm secondary" data-action="editMessage" data-day="'+card.day+'">Modifier</button>'+
+      '<button type="button" class="btn sm secondary" data-action="regenStep" data-day="'+card.day+'">Régénérer cette étape</button>'+
+      '<button type="button" class="btn sm secondary" data-action="openAIPrompt" data-day="'+card.day+'">Affiner avec une IA</button>'+
+    '</div>'+
+  '</div>';
+}
+
+/* ---------- RESULTS ---------- */
+function pageResults(){
+  const st = StateM.get();
+  if(!st.sequence){
+    return headerBar('Ton plan final','')+stepperHtml('results')+
+      '<div class="card"><div class="empty-state"><div class="ic">🗂️</div><p>Ton système J0-J30 apparaîtra ici dès que tu auras terminé les informations essentielles.</p>'+
+      '<div class="actions-row" style="justify-content:center;"><button type="button" class="btn" data-action="goto" data-route="sequence">Aller à ma stratégie</button></div></div></div>';
+  }
+  const p = st.profil;
+  const priorityLeads = st.leads.filter(l=>LeadManager.score(l).cls==='high').slice(0,5);
+  return headerBar('Ton plan final','')+
+  stepperHtml('results')+
+  '<div class="result-hero"><h1>Ton système J0-J30 est prêt</h1><p class="page-sub" style="margin:8px auto 0;">Un plan clair pour reprendre contact avec tes prospects, sans dépendre uniquement de ta mémoire.</p></div>'+
+
+  '<div class="card">'+
+    '<div class="card-title">Résumé</div>'+
+    '<div class="kv-line"><span class="k">Offre</span><span class="v">'+Utils.escapeHtml(p.offre||'—')+'</span></div>'+
+    '<div class="kv-line"><span class="k">Prix moyen</span><span class="v">'+(p.prixOffre?Utils.money(p.prixOffre):'—')+'</span></div>'+
+    '<div class="kv-line"><span class="k">Profil prospect</span><span class="v">'+Utils.escapeHtml(p.typeProspect||'—')+'</span></div>'+
+    '<div class="kv-line"><span class="k">Objectif</span><span class="v">'+Utils.escapeHtml(p.objectifPrincipal||'—')+'</span></div>'+
+    '<div class="kv-line"><span class="k">Canaux</span><span class="v">'+Utils.escapeHtml((p.canaux||[]).join(', ')||'—')+'</span></div>'+
+    '<div class="kv-line"><span class="k">Objections</span><span class="v">'+Utils.escapeHtml((p.objections||[]).join(', ')||'—')+'</span></div>'+
+    '<div class="actions-row"><button type="button" class="btn secondary" data-action="goto" data-route="offer">Modifier mes informations</button></div>'+
+  '</div>'+
+
+  '<div class="card">'+
+    '<div class="card-title">Aujourd\'hui</div>'+
+    '<ol class="today-actions">'+
+      '<li>Relance tes '+(priorityLeads.length||3)+' leads prioritaires'+(priorityLeads.length?(' : '+priorityLeads.map(l=>Utils.escapeHtml(l.nom)).join(', ')):'')+'.</li>'+
+      '<li>Copie ton message J0 ou J1 et envoie-le à ton premier prospect.</li>'+
+      '<li>Programme ta prochaine étape dans ton agenda ou ton CRM.</li>'+
+    '</ol>'+
+  '</div>'+
+
+  '<div class="card">'+
+    '<div class="card-title">Timeline J0 → J30</div>'+
+    '<div class="stack">'+DAY_KEYS.map(day=>sequenceCard(st.sequence[day])).join('')+'</div>'+
+  '</div>'+
+
+  (priorityLeads.length ? ('<div class="card"><div class="card-title">Leads prioritaires</div><div class="stack">'+priorityLeads.map(leadCard).join('')+'</div></div>') : '')+
+
+  '<div class="card">'+
+    '<div class="card-title">Checklist de mise en œuvre</div>'+
+    '<div class="checklist-item"><input type="checkbox" id="ci1" disabled checked><label for="ci1">Mes leads sont identifiés</label></div>'+
+    '<div class="checklist-item"><input type="checkbox" id="ci2" disabled '+(st.profil.offre?'checked':'')+'><label for="ci2">Mon offre est renseignée</label></div>'+
+    '<div class="checklist-item"><input type="checkbox" id="ci3" disabled checked><label for="ci3">Ma séquence J0-J30 est générée</label></div>'+
+    '<div class="checklist-item"><input type="checkbox" id="ci4" disabled><label for="ci4">J\'ai copié et envoyé mon premier message</label></div>'+
+  '</div>'+
+
+  '<div class="actions-row">'+
+    '<button type="button" class="btn" data-action="copyFullPlan">Copier tout le plan</button>'+
+    '<button type="button" class="btn secondary" data-action="exportTxt">Télécharger .txt</button>'+
+    '<button type="button" class="btn secondary" data-action="exportJson">Télécharger .json</button>'+
+    '<button type="button" class="btn secondary" data-action="exportCsv">Télécharger leads .csv</button>'+
+    '<button type="button" class="btn secondary" data-action="printPlan">Imprimer / PDF</button>'+
+  '</div>'+
+  '<div class="actions-row"><button type="button" class="btn secondary" data-action="goPrev">← Précédent</button></div>';
+}
+
+/* ---------- BONUS HUB ---------- */
+function pageBonus(){
+  const st = StateM.get();
+  const items = [
+    {key:'bonus-calculator', ic:'💰', nom:'Calculateur Argent Dormant', benef:'Estime le potentiel théorique restant dans ton pipeline.', done:st.bonusProgress.calculator},
+    {key:'bonus-library', ic:'📚', nom:'Bibliothèque 25 Relances Anti-Silence', benef:'25 templates prêts à copier, classés par situation.', done:st.bonusProgress.library},
+    {key:'bonus-pipeline', ic:'🗂️', nom:'Carte Pipeline Zéro Oubli', benef:'Visualise et fais avancer chaque prospect.', done:st.bonusProgress.pipeline},
+    {key:'bonus-objections', ic:'💬', nom:'Scripts 6 Objections B2B', benef:'Des réponses prêtes pour les objections les plus fréquentes.', done:st.bonusProgress.objections},
+    {key:'bonus-checklist', ic:'✅', nom:'Checklist Avant de Racheter des Leads', benef:'Vérifie ton suivi actuel avant d\'augmenter ton acquisition.', done:st.bonusProgress.checklist}
+  ];
+  return headerBar('Bonus','Ces ressources font partie de ton système.')+
+  '<div class="grid cols-2">'+items.map(b=>(
+    '<div class="card bonus-card">'+
+      '<div class="ic">'+b.ic+'</div>'+
+      '<div class="card-title">'+Utils.escapeHtml(b.nom)+'</div>'+
+      '<div class="card-sub">'+Utils.escapeHtml(b.benef)+'</div>'+
+      '<div class="row" style="align-items:center;gap:6px;"><span class="status-dot '+(b.done?'on':'')+'"></span><span class="hint">'+(b.done?'Déjà utilisé':'Pas encore ouvert')+'</span></div>'+
+      '<div class="actions-row"><button type="button" class="btn sm" data-action="goto" data-route="'+b.key+'">Ouvrir</button></div>'+
+    '</div>'
+  )).join('')+'</div>';
+}
+
+/* ---------- BONUS 1: CALCULATOR ---------- */
+function pageBonusCalculator(){
+  const st = StateM.get();
+  const c = st.calculator;
+  const hasInputs = Utils.toNumber(c.leads)>0 && Utils.toNumber(c.valeurMoyenne)>0;
+  let resultsHtml = '<div class="empty-state"><div class="ic">🧮</div><p>Entre quelques hypothèses pour obtenir une première estimation.</p></div>';
+  if(hasInputs){
+    const r = Calculator.compute(c);
+    resultsHtml = '<div class="grid cols-3">'+
+      scenarioBox('Prudent', r.prudent)+
+      scenarioBox('Médian', r.median)+
+      scenarioBox('Ambitieux', r.ambitieux)+
+      '</div>'+
+      '<p class="hint" style="margin-top:14px;">Avec tes hypothèses actuelles, ton pipeline représente environ <strong>'+Utils.money(r.median.ca)+'</strong> de potentiel théorique à réévaluer (scénario médian).</p>'+
+      '<p class="hint">Cette estimation n\'est pas une prévision de ventes.</p>';
+  }
+  return headerBar('Calculateur Argent Dormant','Combien de potentiel reste encore dans ton pipeline ?', {showPrev:false})+
+  '<div class="card">'+
+    '<p class="card-sub">Utilise cette estimation pour décider où concentrer ton attention avant d\'augmenter ton acquisition.</p>'+
+    '<div class="grid cols-2">'+
+      field('number','calc-leads','Nombre de leads à réévaluer', c.leads, '40')+
+      field('number','calc-valeurMoyenne','Valeur moyenne d\'une vente (€)', c.valeurMoyenne, '3000')+
+      field('number','calc-tauxQualifies','Taux estimé de prospects réellement qualifiés (%)', c.tauxQualifies, '40')+
+      field('number','calc-tauxConversion','Taux de conversion hypothétique (%)', c.tauxConversion, '20')+
+    '</div>'+
+    '<div class="actions-row">'+
+      '<button type="button" class="btn" data-action="saveCalculator">Enregistrer</button>'+
+      (hasInputs?'<button type="button" class="btn secondary" data-action="copyCalculator">Copier le résumé</button><button type="button" class="btn secondary" data-action="exportCalculator">Exporter le résumé</button>':'')+
+    '</div>'+
+  '</div>'+
+  '<div class="card">'+resultsHtml+'</div>'+
+  '<div class="actions-row"><button type="button" class="btn secondary" data-action="goto" data-route="bonus">← Retour aux bonus</button></div>';
+}
+function scenarioBox(label, s){
+  return '<div style="background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius-md);padding:14px;">'+
+    '<div class="hint" style="font-weight:700;color:var(--text-dim);">'+label+'</div>'+
+    '<div class="kv-line"><span class="k">Leads qualifiés (est.)</span><span class="v">'+Utils.number(Math.round(s.qualifies))+'</span></div>'+
+    '<div class="kv-line"><span class="k">Ventes théoriques</span><span class="v">'+Utils.number(Math.round(s.ventes*10)/10)+'</span></div>'+
+    '<div class="kv-line"><span class="k">CA potentiel théorique</span><span class="v">'+Utils.money(s.ca)+'</span></div>'+
+  '</div>';
+}
+
+/* ---------- BONUS 2: LIBRARY ---------- */
+let libraryFilter = '';
+function pageBonusLibrary(){
+  const cats = [...new Set(LIBRARY_25.map(t=>t.cat))];
+  const list = libraryFilter ? LIBRARY_25.filter(t=>t.cat===libraryFilter) : LIBRARY_25;
+  return headerBar('Bibliothèque 25 Relances Anti-Silence','25 messages prêts à copier, classés par situation.', {showPrev:false})+
+  '<div class="filters-bar">'+
+    '<button type="button" class="chip '+(!libraryFilter?'selected':'')+'" data-action="filterLibrary" data-cat="">Toutes ('+LIBRARY_25.length+')</button>'+
+    cats.map(c=>'<button type="button" class="chip '+(libraryFilter===c?'selected':'')+'" data-action="filterLibrary" data-cat="'+Utils.escapeHtml(c)+'">'+Utils.escapeHtml(c)+'</button>').join('')+
+  '</div>'+
+  '<div class="grid cols-2">'+list.map((t,i)=>{
+    const realIndex = LIBRARY_25.indexOf(t);
+    return '<div class="template-card">'+
+      '<div class="cat-tag">'+Utils.escapeHtml(t.cat)+'</div>'+
+      '<div class="card-title" style="margin-top:4px;">'+Utils.escapeHtml(t.titre)+'</div>'+
+      '<div class="hint">Canal idéal : '+Utils.escapeHtml(t.canal)+'</div>'+
+      '<div class="msg-body">'+Utils.nl2br(t.msg)+'</div>'+
+      '<div class="msg-meta">'+
+        '<button type="button" class="btn sm copybtn" data-action="copyMessage" data-text="'+Utils.escapeHtml(t.msg)+'">Copier</button>'+
+        '<button type="button" class="btn sm secondary" data-action="useTemplateInSequence" data-idx="'+realIndex+'">Utiliser dans ma séquence</button>'+
+      '</div>'+
+    '</div>';
+  }).join('')+'</div>'+
+  '<div class="actions-row"><button type="button" class="btn secondary" data-action="goto" data-route="bonus">← Retour aux bonus</button></div>';
+}
+
+/* ---------- BONUS 3: PIPELINE ---------- */
+const PIPELINE_STATUTS = ['Nouveau','Contacté','En échange','Réflexion','À relancer','Rendez-vous fixé','Non prioritaire'];
+function pageBonusPipeline(){
+  const st = StateM.get();
+  if(st.leads.length===0){
+    return headerBar('Carte Pipeline Zéro Oubli','', {showPrev:false})+
+    '<div class="card"><div class="empty-state"><div class="ic">🗂️</div><p>Ajoute au moins un lead pour visualiser ton pipeline.</p>'+
+    '<div class="actions-row" style="justify-content:center;"><button type="button" class="btn" data-action="goto" data-route="leads">Ajouter un lead</button></div></div></div>';
+  }
+  const today = Utils.todayISO();
+  const late = st.leads.filter(l=>{ const u=Utils.daysUntil(l.echeance); return u!==null && u<0; });
+  const now_ = st.leads.filter(l=>{ const u=Utils.daysUntil(l.echeance); return u===0; });
+  const soon = st.leads.filter(l=>{ const u=Utils.daysUntil(l.echeance); return u!==null && u>0 && u<=7; });
+  return headerBar('Carte Pipeline Zéro Oubli','Fais avancer chaque prospect, sans rien oublier.', {showPrev:false})+
+  '<div class="card">'+
+    '<div class="card-title">Mes actions du jour</div>'+
+    '<div class="grid cols-3">'+
+      actionGroup('En retard', late)+
+      actionGroup("Aujourd'hui", now_)+
+      actionGroup('Prochainement', soon)+
+    '</div>'+
+  '</div>'+
+  '<div class="pipeline-cols">'+PIPELINE_STATUTS.map(statut=>{
+    const leads = st.leads.filter(l=>l.statut===statut);
+    return '<div class="pipeline-col"><h3>'+Utils.escapeHtml(statut)+'<span>'+leads.length+'</span></h3>'+
+      leads.map(l=>(
+        '<div class="pipeline-card"><strong>'+Utils.escapeHtml(l.nom||'(Sans nom)')+'</strong>'+
+        (l.valeur?'<div class="pv">'+Utils.money(l.valeur)+'</div>':'')+
+        '<div class="hint">Prochaine action : '+Utils.escapeHtml(l.prochaineAction||'—')+'</div>'+
+        '<div class="hint">Échéance : '+(l.echeance?Utils.formatDate(l.echeance):'—')+'</div>'+
+        '<select class="pipeline-move" data-action-select="moveLead" data-id="'+l.id+'" aria-label="Déplacer vers" style="margin-top:8px;">'+
+          '<option value="">Déplacer vers...</option>'+
+          PIPELINE_STATUTS.filter(s=>s!==statut).map(s=>'<option value="'+s+'">'+s+'</option>').join('')+
+        '</select></div>'
+      )).join('') + (leads.length===0?'<p class="hint">Aucun lead ici.</p>':'')+
+    '</div>';
+  }).join('')+'</div>'+
+  '<div class="actions-row"><button type="button" class="btn secondary" data-action="goto" data-route="bonus">← Retour aux bonus</button></div>';
+}
+function actionGroup(label, leads){
+  return '<div><div class="hint" style="font-weight:700;color:var(--text-dim);margin-bottom:6px;">'+label+' ('+leads.length+')</div>'+
+    (leads.length? leads.slice(0,4).map(l=>'<div class="hint">• '+Utils.escapeHtml(l.nom||'(Sans nom)')+'</div>').join('') : '<div class="hint">Rien ici.</div>')+
+  '</div>';
+}
+
+/* ---------- BONUS 4: OBJECTIONS ---------- */
+function pageBonusObjections(){
+  return headerBar('Scripts 6 Objections B2B','Des réponses prêtes, sans jamais prétendre savoir exactement ce que pense le prospect.', {showPrev:false})+
+  '<div class="stack">'+OBJECTIONS_6.map((o,i)=>(
+    '<div class="card">'+
+      '<div class="card-title">'+Utils.escapeHtml(o.nom)+'</div>'+
+      '<p class="hint">Cette objection peut signifier : '+Utils.escapeHtml(o.peut)+'</p>'+
+      '<p class="hint">Objectif de la réponse : '+Utils.escapeHtml(o.objectif)+'</p>'+
+      '<p class="hint">À éviter : '+Utils.escapeHtml(o.eviter)+'</p>'+
+      '<div class="msg-body">Version courte : '+Utils.nl2br(o.court)+'</div>'+
+      '<div class="msg-body">Version email : '+Utils.nl2br(o.email)+'</div>'+
+      '<div class="msg-body">Version LinkedIn / message : '+Utils.nl2br(o.linkedin)+'</div>'+
+      '<div class="msg-body">Question de clarification : '+Utils.nl2br(o.clarif)+'</div>'+
+      '<div class="msg-meta">'+
+        '<button type="button" class="btn sm copybtn" data-action="copyMessage" data-text="'+Utils.escapeHtml(o.email)+'">Copier (email)</button>'+
+        '<button type="button" class="btn sm secondary" data-action="useObjectionInSequence" data-idx="'+i+'">Ajouter à ma séquence (J7)</button>'+
+      '</div>'+
+    '</div>'
+  )).join('')+'</div>'+
+  '<div class="actions-row"><button type="button" class="btn secondary" data-action="goto" data-route="bonus">← Retour aux bonus</button></div>';
+}
+
+/* ---------- BONUS 5: CHECKLIST ---------- */
+const CHECKLIST_ITEMS = [
+  {sec:'Visibilité', id:'v1', label:'Je sais combien de leads sont actuellement dans mon pipeline.'},
+  {sec:'Visibilité', id:'v2', label:'Je connais leur source.'},
+  {sec:'Visibilité', id:'v3', label:'Je connais la date du dernier contact.'},
+  {sec:'Suivi', id:'s1', label:'Chaque lead prioritaire possède une prochaine action.'},
+  {sec:'Suivi', id:'s2', label:'Les prospects « pas maintenant » ont une date de reprise.'},
+  {sec:'Suivi', id:'s3', label:'Les relances ne reposent pas uniquement sur ma mémoire.'},
+  {sec:'Messages', id:'m1', label:'Chaque relance apporte une nouvelle raison de répondre.'},
+  {sec:'Messages', id:'m2', label:'Les objections fréquentes ont une réponse préparée.'},
+  {sec:'Messages', id:'m3', label:'Je peux adapter mes messages au canal.'},
+  {sec:'Mesure', id:'d1', label:'Je connais approximativement mon taux de rendez-vous.'},
+  {sec:'Mesure', id:'d2', label:'Je connais approximativement mon taux de conversion.'},
+  {sec:'Mesure', id:'d3', label:'Je peux distinguer acquisition et suivi.'}
+];
+function pageBonusChecklist(){
+  const st = StateM.get();
+  const checked = st.checklist.checked || {};
+  const total = CHECKLIST_ITEMS.length;
+  const doneCount = CHECKLIST_ITEMS.filter(it=>checked[it.id]).length;
+  const pct = Math.round(doneCount/total*100);
+  const secs = [...new Set(CHECKLIST_ITEMS.map(i=>i.sec))];
+  let reco = '';
+  if(pct>=80) reco = "Ton pipeline est déjà bien structuré. Tu peux maintenant travailler simultanément l'acquisition et la conversion.";
+  else reco = "Quelques ajustements dans ton suivi peuvent t'aider à mieux exploiter les opportunités existantes avant d'augmenter ton volume.";
+  return headerBar('Checklist Avant de Racheter des Leads',"Avant d'augmenter ton acquisition, vérifie ton pipeline actuel.", {showPrev:false})+
+  '<div class="card">'+
+    '<div class="row between"><span class="card-title">Progression</span><span class="badge">'+pct+'%</span></div>'+
+    '<div class="progressbar"><div style="width:'+pct+'%"></div></div>'+
+  '</div>'+
+  secs.map(sec=>(
+    '<div class="card"><div class="card-title">'+sec+'</div>'+
+    CHECKLIST_ITEMS.filter(it=>it.sec===sec).map(it=>(
+      '<div class="checklist-item"><input type="checkbox" id="chk-'+it.id+'" data-action="toggleChecklist" data-id="'+it.id+'" '+(checked[it.id]?'checked':'')+'><label for="chk-'+it.id+'">'+Utils.escapeHtml(it.label)+'</label></div>'
+    )).join('')+
+    '</div>'
+  )).join('')+
+  '<div class="card"><div class="card-title">Recommandation</div><p class="page-sub">'+reco+'</p></div>'+
+  '<div class="actions-row"><button type="button" class="btn secondary" data-action="goto" data-route="bonus">← Retour aux bonus</button></div>';
+}
+
+/* ---------- EXPORTS ---------- */
+function pageExports(){
+  const st = StateM.get();
+  return headerBar('Ressources / Export','Retrouve et exporte tout ton système.', {showPrev:false})+
+  '<div class="grid cols-2">'+
+    exportCard('Mon plan J0-J30', st.sequence?'Généré':'Pas encore généré', [
+      ['Copier','copyFullPlan'],['Télécharger .txt','exportTxt'],['Télécharger .json','exportJson'],['Imprimer / PDF','printPlan']
+    ])+
+    exportCard('Mes leads', st.leads.length+' leads enregistrés', [
+      ['Télécharger .csv','exportCsv']
+    ])+
+    exportCard('Résumé calculateur', st.calculator.savedAt?'Enregistré':'Pas encore rempli', [
+      ['Copier le résumé','copyCalculator'],['Exporter','exportCalculator']
+    ])+
+    exportCard('Sauvegarde complète', 'Toutes tes données', [
+      ['Sauvegarder (.json)','exportJson'],['Restaurer une sauvegarde','openImport']
+    ])+
+  '</div>'+
+  '<div class="card">'+
+    '<div class="card-title">Réinitialiser</div>'+
+    '<p class="card-sub">Cette action efface toutes tes données locales. Elle est irréversible.</p>'+
+    '<button type="button" class="btn danger" data-action="confirmReset">Réinitialiser mes données</button>'+
+  '</div>'+
+  '<input type="file" id="import-file-input" accept="application/json" class="visually-hidden">';
+}
+function exportCard(title, sub, actions){
+  return '<div class="card"><div class="card-title">'+Utils.escapeHtml(title)+'</div><div class="card-sub">'+Utils.escapeHtml(sub)+'</div>'+
+    '<div class="actions-row">'+actions.map(([label,action])=>'<button type="button" class="btn sm secondary" data-action="'+action+'">'+label+'</button>').join('')+'</div>'+
+  '</div>';
+}
+
+/* =========================================================
+   RENDER ROUTER
+========================================================= */
+function renderRoute(hash){
+  const app = document.getElementById('app');
+  const renderers = {
+    home: pageHome, leads: pageLeads, offer: pageOffer, sequence: pageSequence, results: pageResults,
+    bonus: pageBonus, 'bonus-calculator': pageBonusCalculator, 'bonus-library': pageBonusLibrary,
+    'bonus-pipeline': pageBonusPipeline, 'bonus-objections': pageBonusObjections, 'bonus-checklist': pageBonusChecklist,
+    exports: pageExports
+  };
+  app.innerHTML = (renderers[hash] || pageHome)();
+  bindLiveFieldValues();
+}
+
+function bindLiveFieldValues(){
+  const st = StateM.get();
+  document.querySelectorAll('[data-field-live="leadSearch"]').forEach(el=>{ el.value = leadsUIState.filters.search; });
+}
+
+/* =========================================================
+   EXPORT BUILDERS
+========================================================= */
+function buildPlanText(){
+  const st = StateM.get();
+  const p = st.profil;
+  let out = 'LEADS DORMANTS → RENDEZ-VOUS\n\n';
+  out += 'Entreprise : '+(p.entreprise||'—')+'\n';
+  out += 'Offre : '+(p.offre||'—')+'\n';
+  out += 'Prix : '+(p.prixOffre?Utils.money(p.prixOffre):'—')+'\n';
+  out += 'Prospect type : '+(p.typeProspect||'—')+'\n';
+  out += 'Sources : '+((p.sourcesLeads||[]).join(', ')||'—')+'\n';
+  out += 'Cycle : '+(p.cycleVente||'—')+'\n';
+  out += 'Objections : '+((p.objections||[]).join(', ')||'—')+'\n\n';
+  out += 'SÉQUENCE J0-J30\n\n';
+  if(st.sequence){
+    DAY_KEYS.forEach(day=>{
+      const c = st.sequence[day];
+      out += day+'\n';
+      out += 'Objectif : '+c.objectif+'\n';
+      out += 'Canal : '+c.canal+'\n';
+      out += 'Message :\n'+c.message+'\n\n';
+    });
+  }
+  out += 'PROCHAINES ACTIONS\n';
+  out += '- Relancer les leads prioritaires\n- Copier le message du jour\n- Programmer la prochaine étape\n';
+  return out;
+}
+function buildLeadsCsv(){
+  const st = StateM.get();
+  const header = ['Nom','Source','Valeur','Statut','Dernier contact','Objection','Prochaine action','Échéance','Priorité','Notes'];
+  const rows = st.leads.map(l=>[
+    l.nom, l.source, l.valeur, l.statut, l.dernierContact, l.objection, l.prochaineAction, l.echeance, LeadManager.score(l).label, l.notes
+  ].map(Utils.csvEscape).join(','));
+  return '﻿' + header.join(',') + '\n' + rows.join('\n');
+}
+
+/* =========================================================
+   ONBOARDING
+========================================================= */
+const ONBOARD_SLIDES = [
+  {title:'Bienvenue dans Leads Dormants → Rendez-vous', body:'Ici, tu vas transformer ton suivi actuel en système J0-J30 clair et réutilisable.'},
+  {title:'Commence avec les leads que tu as déjà', body:'Même si tes prospects sont répartis entre plusieurs outils, tu peux commencer simplement.'},
+  {title:'Ton plan reste modifiable', body:'Toutes tes réponses sont sauvegardées localement. Tu pourras revenir, modifier et régénérer sans recommencer de zéro.'}
+];
+let onboardIndex = 0;
+function showOnboarding(){
+  onboardIndex = 0;
+  renderOnboarding();
+}
+function renderOnboarding(){
+  const root = document.getElementById('modal-root');
+  const slide = ONBOARD_SLIDES[onboardIndex];
+  const isLast = onboardIndex === ONBOARD_SLIDES.length-1;
+  root.innerHTML = '<div class="onboard-overlay" role="dialog" aria-modal="true">'+
+    '<div class="onboard-body">'+
+      '<h1 class="page-title">'+Utils.escapeHtml(slide.title)+'</h1>'+
+      '<p class="page-sub" style="margin-top:12px;">'+Utils.escapeHtml(slide.body)+'</p>'+
+      '<div class="onboard-dots">'+ONBOARD_SLIDES.map((_,i)=>'<span class="'+(i===onboardIndex?'active':'')+'"></span>').join('')+'</div>'+
+    '</div>'+
+    '<div class="onboard-foot">'+
+      '<button type="button" class="btn-link" data-action="skipOnboarding">Passer l\'introduction</button>'+
+      '<button type="button" class="btn" data-action="'+(isLast?'finishOnboarding':'nextOnboarding')+'">'+(isLast?'Construire mon système':'Continuer')+'</button>'+
+    '</div>'+
+  '</div>';
+}
+function endOnboarding(){
+  StateM.set('onboardingSeen', true);
+  document.getElementById('modal-root').innerHTML='';
+}
+
+/* =========================================================
+   AI PROMPT MODAL
+========================================================= */
+function buildAIPrompt(day){
+  const st = StateM.get();
+  const p = st.profil;
+  const c = st.sequence[day];
+  return "Tu es expert en vente B2B. Améliore cette relance sans la rendre insistante. Conserve le sens, adapte le ton à "+(p.ton||'Consultatif')+", prends en compte que je vends "+(p.offre||'mon offre')+" à "+(p.prixOffre?Utils.money(p.prixOffre):'un prix donné')+" à "+(p.typeProspect||'ma cible')+". L'objection principale est "+((p.objections&&p.objections[0])||'Aucune')+". Objectif de cette relance : "+c.objectif+". Canal : "+c.canal+". Message actuel : "+c.message+". Retourne uniquement 3 variantes courtes.";
+}
+
+/* =========================================================
+   ACTIONS REGISTRY
+========================================================= */
+const Actions = {
+  goHome(){ navigate('home'); },
+  goPrev(){ if(previousHash && previousHash!==currentHash) navigate(previousHash); else navigate('home'); },
+  goto(btn){ navigate(btn.dataset.route); },
+  loadDemo(){
+    const st = StateM.get();
+    const hasData = st.leads.length>0 || st.profil.offre;
+    const apply = ()=>{
+      st.profil = {entreprise:'Studio Fictif Conseil', offre:'Conseil acquisition', prixOffre:'3000', typeProspect:'Dirigeants de PME de services', resultatOffre:'Plus de rendez-vous qualifiés chaque mois', sourcesLeads:['Meta Ads'], cycleVente:'2 à 4 semaines', canaux:['Email','LinkedIn'], objections:['Besoin de réfléchir'], ton:'Consultatif', objectifPrincipal:'Obtenir un rendez-vous'};
+      st.leads = [
+        LeadManager._raw({nom:'Exemple fictif — Julie', source:'Meta Ads', valeur:3000, dernierContact: Utils.todayISO(), statut:'À relancer', objection:'Besoin de réfléchir', prochaineAction:'Envoyer un cas pratique', echeance:Utils.todayISO(), notes:'Exemple fictif'})
+      ];
+      st.demo = true;
+      StateM.save();
+      UI.toast('Exemple fictif chargé.');
+      navigate('home');
+      renderRoute(currentHash);
+    };
+    if(hasData){
+      UI.confirm({title:'Charger un exemple fictif ?', message:'Cela ajoutera un jeu de données fictif à ton système actuel. Tes données existantes seront conservées.', confirmLabel:'Charger', onConfirm:apply});
+    } else apply();
+  },
+  setLeadMode(btn){ leadsUIState.mode = btn.dataset.mode; if(leadsUIState.mode==='quick') StateM.set('quickInventory.actif', true); rerender(); },
+  openLeadForm(){ leadsUIState.editingId=null; leadsUIState.formOpen=true; rerender(); scrollToFormSoon(); },
+  editLead(btn){ leadsUIState.editingId = btn.dataset.id; leadsUIState.formOpen=true; rerender(); scrollToFormSoon(); },
+  cancelLeadForm(){ leadsUIState.formOpen=false; leadsUIState.editingId=null; rerender(); },
+  saveLeadForm(btn){
+    const nom = document.getElementById('lf-nom').value.trim();
+    const errEl = document.getElementById('lead-form-err');
+    if(!nom){
+      errEl.style.display='block'; errEl.textContent = 'Indique un prénom ou une société.';
+      document.getElementById('lf-nom').focus();
+      return;
+    }
+    errEl.style.display='none';
+    const valeurRaw = document.getElementById('lf-valeur').value;
+    if(valeurRaw && Utils.toNumber(valeurRaw)<0){
+      errEl.style.display='block'; errEl.textContent='Indique une valeur supérieure à 0.';
+      document.getElementById('lf-valeur').focus();
+      return;
+    }
+    const objectionVal = document.getElementById('lf-objection').value;
+    const data = {
+      nom, source: document.getElementById('lf-source').value, valeur: valeurRaw,
+      dernierContact: document.getElementById('lf-dernierContact').value,
+      statut: document.getElementById('lf-statut').value,
+      derniereInteraction: document.getElementById('lf-derniereInteraction').value,
+      objection: objectionVal==='(Aucune)' ? '' : objectionVal,
+      prochaineAction: document.getElementById('lf-prochaineAction').value,
+      echeance: document.getElementById('lf-echeance').value,
+      notes: document.getElementById('lf-notes').value
+    };
+    const id = btn.dataset.id;
+    if(id) LeadManager.update(id, data); else LeadManager.add(data);
+    leadsUIState.formOpen=false; leadsUIState.editingId=null;
+    UI.toast('Lead enregistré.');
+    rerender();
+  },
+  deleteLead(btn){
+    UI.confirm({title:'Supprimer ce lead ?', message:'Cette action est définitive.', confirmLabel:'Supprimer', danger:true, onConfirm:()=>{ LeadManager.remove(btn.dataset.id); UI.toast('Lead supprimé.'); rerender(); }});
+  },
+  duplicateLead(btn){ LeadManager.duplicate(btn.dataset.id); UI.toast('Lead dupliqué.'); rerender(); },
+  toggleChipMulti(btn){
+    const group = btn.dataset.group, val = btn.dataset.value;
+    const fieldMap = {'of-sourcesLeads':'profil.sourcesLeads','of-canaux':'profil.canaux','of-objections':'profil.objections'};
+    const path = fieldMap[group];
+    const st = StateM.get();
+    const arr = Utils.getPath(st, path) || [];
+    const idx = arr.indexOf(val);
+    if(idx>=0) arr.splice(idx,1); else arr.push(val);
+    StateM.save();
+    btn.classList.toggle('selected');
+  },
+  toggleChipSingle(btn){
+    const group = btn.dataset.group, val = btn.dataset.value;
+    const fieldMap = {'of-ton':'profil.ton','of-objectif':'profil.objectifPrincipal'};
+    Utils.setPath(StateM.get(), fieldMap[group], val);
+    StateM.save();
+    document.querySelectorAll('[data-action="toggleChipSingle"][data-group="'+group+'"]').forEach(el=>{
+      el.classList.toggle('selected', el===btn);
+    });
+  },
+  saveOfferAndContinue(){
+    const p = StateM.get().profil;
+    p.entreprise = document.getElementById('of-entreprise').value;
+    p.offre = document.getElementById('of-offre').value.trim();
+    p.prixOffre = document.getElementById('of-prix').value;
+    p.typeProspect = document.getElementById('of-typeProspect').value.trim();
+    p.resultatOffre = document.getElementById('of-resultat').value;
+    p.cycleVente = document.getElementById('of-cycle').value;
+    const errEl = document.getElementById('offer-form-err');
+    if(!p.offre || !p.prixOffre || !p.typeProspect){
+      errEl.style.display='block';
+      errEl.textContent = "Indique au minimum ton offre, ton prix moyen et ton type de prospect pour générer une séquence pertinente.";
+      StateM.save();
+      return;
+    }
+    if(Utils.toNumber(p.prixOffre)<0){
+      errEl.style.display='block'; errEl.textContent='Indique un prix supérieur ou égal à 0.'; return;
+    }
+    errEl.style.display='none';
+    StateM.save();
+    UI.toast('Informations enregistrées.');
+    navigate('sequence');
+  },
+  generateSequence(){
+    const st = StateM.get();
+    st.sequence = SequenceGenerator.generate(st.profil);
+    st.sourceSnapshot = SequenceGenerator.snapshot(st.profil);
+    StateM.save();
+    UI.toast('Séquence générée.');
+    rerender();
+  },
+  updateSequenceFromOffer(){
+    const st = StateM.get();
+    DAY_KEYS.forEach((day,i)=>{
+      if(!st.sequence[day].manuallyEdited){
+        const notes = st.sequence[day].notes;
+        st.sequence[day] = SequenceGenerator.buildCard(day, st.profil, i, st.sequence[day].variantIndex||0);
+        st.sequence[day].notes = notes;
+      }
+    });
+    st.sourceSnapshot = SequenceGenerator.snapshot(st.profil);
+    StateM.save();
+    UI.toast('Suggestions mises à jour.');
+    rerender();
+  },
+  keepCurrentSequence(){
+    const st = StateM.get();
+    st.sourceSnapshot = SequenceGenerator.snapshot(st.profil);
+    StateM.save();
+    rerender();
+  },
+  confirmRegenAll(){
+    UI.confirm({title:'Régénérer toute la séquence ?', message:'Les messages modifiés manuellement seront remplacés par de nouvelles suggestions.', confirmLabel:'Régénérer', onConfirm:()=>{
+      const st = StateM.get();
+      st.sequence = SequenceGenerator.generate(st.profil);
+      st.sourceSnapshot = SequenceGenerator.snapshot(st.profil);
+      StateM.save();
+      UI.toast('Séquence régénérée.');
+      rerender();
+    }});
+  },
+  regenStep(btn){
+    const day = btn.dataset.day;
+    const st = StateM.get();
+    const doRegen = ()=>{ SequenceGenerator.regenerateStep(st, day); UI.toast(day+' régénéré.'); rerender(); };
+    if(st.sequence[day].manuallyEdited){
+      UI.confirm({title:'Remplacer ta modification ?', message:'Ce message a été modifié manuellement. Le régénérer remplacera ton texte actuel.', confirmLabel:'Régénérer', onConfirm:doRegen});
+    } else doRegen();
+  },
+  editMessage(btn){
+    const day = btn.dataset.day;
+    StateM.get().sequence[day].editing = true;
+    rerender();
+  },
+  saveManualEdit(btn){
+    const day = btn.dataset.day;
+    const val = document.getElementById('edit-area-'+day).value;
+    const st = StateM.get();
+    st.sequence[day].message = val;
+    st.sequence[day].manuallyEdited = true;
+    st.sequence[day].editing = false;
+    StateM.save();
+    UI.toast('Modification conservée.');
+    rerender();
+  },
+  cancelManualEdit(btn){
+    StateM.get().sequence[btn.dataset.day].editing = false;
+    rerender();
+  },
+  copyMessage: async function(btn){
+    const text = btn.dataset.text;
+    const ok = await Utils.copyText(text);
+    if(ok){
+      const original = btn.textContent;
+      btn.textContent = 'Copié ✓';
+      btn.classList.add('copied');
+      setTimeout(()=>{ btn.textContent = original; btn.classList.remove('copied'); }, 1600);
+      UI.toast('Copié');
+    } else {
+      UI.toast("Impossible de copier automatiquement. Sélectionne le texte manuellement.");
+    }
+  },
+  openAIPrompt(btn){
+    const day = btn.dataset.day;
+    const prompt = buildAIPrompt(day);
+    UI.modal({
+      title:'Affiner avec une IA',
+      bodyHtml: '<p class="hint">Copie ce prompt dans ChatGPT, Claude ou une autre IA pour obtenir 3 variantes.</p><div class="msg-body">'+Utils.nl2br(prompt)+'</div>',
+      actions:[
+        {label:'Fermer', className:'secondary'},
+        {label:'Copier le prompt', onClick:async ()=>{ const ok = await Utils.copyText(prompt); UI.toast(ok?'Copié':'Copie impossible, sélectionne le texte.'); }, close:false}
+      ]
+    });
+  },
+  useTemplateInSequence(btn){
+    const tpl = LIBRARY_25[Number(btn.dataset.idx)];
+    openDayPicker(tpl.msg);
+  },
+  useObjectionInSequence(btn){
+    const o = OBJECTIONS_6[Number(btn.dataset.idx)];
+    openDayPicker(o.email, 'J7');
+  },
+  filterLibrary(btn){ libraryFilter = btn.dataset.cat; rerender(); },
+  toggleChecklist(btn){
+    const st = StateM.get();
+    st.checklist.checked = st.checklist.checked || {};
+    st.checklist.checked[btn.dataset.id] = btn.checked;
+    st.checklist.savedAt = Date.now();
+    st.bonusProgress.checklist = true;
+    StateM.save();
+    rerender();
+  },
+  saveCalculator(){
+    const st = StateM.get();
+    st.calculator = {
+      leads: document.getElementById('calc-leads').value,
+      valeurMoyenne: document.getElementById('calc-valeurMoyenne').value,
+      tauxQualifies: Utils.clampPercent(document.getElementById('calc-tauxQualifies').value),
+      tauxConversion: Utils.clampPercent(document.getElementById('calc-tauxConversion').value),
+      savedAt: Date.now()
+    };
+    st.bonusProgress.calculator = true;
+    StateM.save();
+    UI.toast('Enregistré.');
+    rerender();
+  },
+  copyCalculator: async function(){
+    const st = StateM.get();
+    const r = Calculator.compute(st.calculator);
+    const text = "Estimation Argent Dormant (potentiel théorique, hypothèses personnalisées) :\nScénario prudent : "+Utils.money(r.prudent.ca)+"\nScénario médian : "+Utils.money(r.median.ca)+"\nScénario ambitieux : "+Utils.money(r.ambitieux.ca)+"\nCette estimation n'est pas une prévision de ventes.";
+    const ok = await Utils.copyText(text);
+    UI.toast(ok?'Copié':'Copie impossible.');
+  },
+  exportCalculator(){
+    const st = StateM.get();
+    const r = Calculator.compute(st.calculator);
+    const text = "RÉSUMÉ CALCULATEUR ARGENT DORMANT\n\nScénario prudent : "+Utils.money(r.prudent.ca)+"\nScénario médian : "+Utils.money(r.median.ca)+"\nScénario ambitieux : "+Utils.money(r.ambitieux.ca)+"\n\nCette estimation n'est pas une prévision de ventes.";
+    Utils.downloadFile('resume-calculateur.txt', text, 'text/plain;charset=utf-8');
+    UI.toast('Fichier téléchargé.');
+  },
+  moveLeadSelect(select){
+    const val = select.value;
+    if(!val) return;
+    LeadManager.update(select.dataset.id, {statut: val});
+    UI.toast('Statut mis à jour.');
+    rerender();
+  },
+  copyFullPlan: async function(){
+    const ok = await Utils.copyText(buildPlanText());
+    UI.toast(ok?'Copié':'Copie impossible, essaie le téléchargement .txt.');
+  },
+  exportTxt(){ Utils.downloadFile('plan-j0-j30.txt', buildPlanText(), 'text/plain;charset=utf-8'); UI.toast('Fichier téléchargé.'); },
+  exportJson(){ Utils.downloadFile('leads-dormants-sauvegarde.json', JSON.stringify(StateM.get(), null, 2), 'application/json'); UI.toast('Fichier téléchargé.'); },
+  exportCsv(){
+    const st = StateM.get();
+    if(st.leads.length===0){ UI.toast('Aucun lead à exporter.'); return; }
+    Utils.downloadFile('leads.csv', buildLeadsCsv(), 'text/csv;charset=utf-8');
+    UI.toast('Fichier téléchargé.');
+  },
+  printPlan(){ window.print(); },
+  openImport(){ document.getElementById('import-file-input').click(); },
+  confirmReset(){
+    UI.confirm({title:'Réinitialiser toutes tes données ?', message:'Cette action supprime définitivement tes leads, ton offre et ta séquence. Elle ne peut pas être annulée.', confirmLabel:'Réinitialiser', danger:true, onConfirm:()=>{
+      StateM.reset();
+      UI.toast('Données réinitialisées.');
+      navigate('home');
+      rerender();
+    }});
+  },
+  skipOnboarding(){ endOnboarding(); },
+  nextOnboarding(){ onboardIndex = Math.min(onboardIndex+1, ONBOARD_SLIDES.length-1); renderOnboarding(); },
+  finishOnboarding(){ endOnboarding(); navigate('leads'); },
+  closeModal(){ UI.closeModal(); }
+};
+LeadManager._raw = function(data){
+  return Object.assign({id:Utils.uid(), createdAt:Date.now(), updatedAt:Date.now()}, data);
+};
+
+function openDayPicker(message, forcedDay){
+  if(forcedDay){
+    applyTemplateToDay(forcedDay, message);
+    return;
+  }
+  const st = StateM.get();
+  if(!st.sequence){ UI.toast("Génère d'abord ta séquence J0-J30."); return; }
+  UI.modal({
+    title:'Utiliser ce message dans ma séquence',
+    bodyHtml: '<p class="hint">Choisis le jour à remplacer par ce message :</p>'+
+      '<div class="chip-group">'+DAY_KEYS.map(d=>'<button type="button" class="chip" data-day-pick="'+d+'">'+d+'</button>').join('')+'</div>',
+    actions:[{label:'Annuler', className:'secondary'}]
+  });
+  document.querySelectorAll('[data-day-pick]').forEach(b=>{
+    b.addEventListener('click', ()=>{ applyTemplateToDay(b.dataset.dayPick, message); UI.closeModal(); });
+  });
+}
+function applyTemplateToDay(day, message){
+  const st = StateM.get();
+  if(!st.sequence){ UI.toast("Génère d'abord ta séquence J0-J30."); return; }
+  const apply = ()=>{
+    st.sequence[day].message = message;
+    st.sequence[day].manuallyEdited = true;
+    StateM.save();
+    UI.toast('Ajouté à '+day+'.');
+    navigate('sequence');
+    rerender();
+  };
+  if(st.sequence[day].manuallyEdited){
+    UI.confirm({title:'Remplacer le message de '+day+' ?', message:'Ce message a déjà été modifié manuellement.', confirmLabel:'Remplacer', onConfirm:apply});
+  } else apply();
+}
+
+function scrollToFormSoon(){ setTimeout(()=>{ const el=document.getElementById('lead-form-card'); if(el) el.scrollIntoView({behavior:'smooth',block:'start'}); }, 30); }
+function rerender(){ renderRoute(currentHash); }
+
+/* =========================================================
+   GLOBAL EVENT DELEGATION
+========================================================= */
+document.addEventListener('click', function(e){
+  const navBtn = e.target.closest('[data-nav]');
+  if(navBtn){
+    const map = {home:'home', system:'system', bonus:'bonus', exports:'exports'};
+    navigate(map[navBtn.dataset.nav]);
+    return;
+  }
+  const actionBtn = e.target.closest('[data-action]');
+  if(actionBtn){
+    const action = actionBtn.dataset.action;
+    if(Actions[action]) Actions[action](actionBtn, e);
+  }
+});
+document.addEventListener('change', function(e){
+  const t = e.target;
+  if(t.matches('[data-field]')){
+    let val = t.value;
+    Utils.setPath(StateM.get(), t.dataset.field, val);
+    StateM.save();
+  }
+  if(t.matches('[data-day-notes]')){
+    const st = StateM.get();
+    if(st.sequence && st.sequence[t.dataset.dayNotes]){
+      st.sequence[t.dataset.dayNotes].notes = t.value;
+      StateM.save();
+    }
+  }
+  if(t.matches('[data-action-select="moveLead"]')){
+    Actions.moveLeadSelect(t);
+  }
+  if(t.matches('[data-field-live="leadStatutFilter"]')){ leadsUIState.filters.statut = t.value; rerender(); }
+  if(t.matches('[data-field-live="leadSourceFilter"]')){ leadsUIState.filters.source = t.value; rerender(); }
+  if(t.matches('[data-field-live="leadSort"]')){ leadsUIState.filters.sort = t.value; rerender(); }
+  if(t.id==='import-file-input' && t.files && t.files[0]){
+    const file = t.files[0];
+    const reader = new FileReader();
+    reader.onload = function(){
+      let parsed = null;
+      try{ parsed = JSON.parse(reader.result); }catch(err){ parsed = null; }
+      if(!parsed || !Storage.isValidImport(parsed)){
+        UI.toast("Cette sauvegarde semble invalide. Tes données actuelles n'ont pas été modifiées.");
+        t.value = '';
+        return;
+      }
+      UI.confirm({
+        title:'Restaurer cette sauvegarde ?',
+        message:'Cela remplacera toutes tes données actuelles par celles du fichier importé. Cette action ne peut pas être annulée.',
+        confirmLabel:'Restaurer',
+        danger:true,
+        onConfirm:()=>{
+          StateM.data = Storage.migrate(parsed);
+          StateM.save();
+          UI.toast('Données restaurées.');
+          navigate('home');
+          rerender();
+        }
+      });
+      t.value = '';
+    };
+    reader.onerror = function(){
+      UI.toast("Cette sauvegarde semble invalide. Tes données actuelles n'ont pas été modifiées.");
+      t.value = '';
+    };
+    reader.readAsText(file);
+  }
+});
+document.addEventListener('input', Utils.debounce(function(e){
+  const t = e.target;
+  if(t.matches('[data-field][data-numeric]')){
+    Utils.setPath(StateM.get(), t.dataset.field, t.value);
+    StateM.save();
+  } else if(t.matches('[data-field]') && (t.tagName==='TEXTAREA')){
+    Utils.setPath(StateM.get(), t.dataset.field, t.value);
+    StateM.save();
+  }
+  if(t.matches('[data-field-live="leadSearch"]')){
+    leadsUIState.filters.search = t.value;
+    rerender();
+    const el = document.querySelector('[data-field-live="leadSearch"]');
+    if(el){ el.focus(); el.setSelectionRange(el.value.length, el.value.length); }
+  }
+}, 250));
+document.addEventListener('keydown', function(e){
+  if(e.key==='Enter' && e.target.matches('#lf-nom, #lf-valeur')){
+    e.preventDefault();
+  }
+});
+
+/* =========================================================
+   BOOTSTRAP
+========================================================= */
+function boot(){
+  StateM.init();
+  window.addEventListener('hashchange', route);
+  if(!location.hash) location.hash = '#home';
+  route();
+  if(!StateM.get().onboardingSeen){
+    showOnboarding();
+  }
+}
+boot();
+
+})();
+</script>
+</body>
+</html>
