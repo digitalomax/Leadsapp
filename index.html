@@ -46,6 +46,7 @@ body{
   -webkit-font-smoothing:antialiased;
   line-height:1.5;
   min-height:100vh;
+  min-height:100dvh;
   padding-bottom:calc(var(--tabbar-h) + env(safe-area-inset-bottom) + 16px);
 }
 @media (min-width:900px){ body{ padding-bottom:24px; } }
@@ -918,21 +919,25 @@ function nextIncompleteRoute(){
 }
 
 function navigate(hash){
-  location.hash = '#' + hash;
+  try{ location.hash = '#' + hash; }catch(e){ /* ignore, route() below still runs */ }
+  // Never rely solely on the 'hashchange' event: some hosting/preview contexts
+  // can leave that listener unregistered if an earlier step failed. Driving
+  // route() directly here means every navigation click still renders.
+  route();
 }
 
 function route(){
   let hash = (location.hash || '#home').replace('#','');
   if(hash==='system'){
     hash = nextIncompleteRoute();
-    history.replaceState(null, '', '#' + hash);
+    try{ history.replaceState(null, '', '#' + hash); }catch(e){ /* non-fatal */ }
   }
   if(!ROUTES.includes(hash)) hash = 'home';
   previousHash = currentHash;
   currentHash = hash;
   renderRoute(hash);
   updateNavActive(hash);
-  window.scrollTo(0,0);
+  try{ window.scrollTo(0,0); }catch(e){ /* non-fatal */ }
 }
 
 function updateNavActive(hash){
@@ -1966,7 +1971,8 @@ const Actions = {
   skipOnboarding(){ endOnboarding(); },
   nextOnboarding(){ onboardIndex = Math.min(onboardIndex+1, ONBOARD_SLIDES.length-1); renderOnboarding(); },
   finishOnboarding(){ endOnboarding(); navigate('leads'); },
-  closeModal(){ UI.closeModal(); }
+  closeModal(){ UI.closeModal(); },
+  reloadApp(){ try{ location.reload(); }catch(e){ /* nothing more to do */ } }
 };
 LeadManager._raw = function(data){
   return Object.assign({id:Utils.uid(), createdAt:Date.now(), updatedAt:Date.now()}, data);
@@ -2100,18 +2106,65 @@ document.addEventListener('keydown', function(e){
 });
 
 /* =========================================================
+   GLOBAL ERROR SAFETY NET
+   A single failure anywhere (a bad localStorage entry, a rendering
+   edge case) must never leave the whole app stuck on a blank screen.
+========================================================= */
+window.onerror = function(message, source, lineno, colno, error){
+  console.warn('Erreur interceptée :', message, error);
+  try{
+    const app = document.getElementById('app');
+    if(app && !app.innerHTML.trim()){
+      app.innerHTML = '<div class="card"><div class="empty-state"><div class="ic">⚠️</div>'+
+        '<p>Un problème est survenu pendant le chargement. Essaie de recharger la page.</p>'+
+        '<div class="actions-row" style="justify-content:center;"><button type="button" class="btn" data-action="reloadApp">Recharger</button></div>'+
+        '</div></div>';
+    }
+  }catch(e){ /* last resort: nothing more we can safely do */ }
+  return false;
+};
+window.onunhandledrejection = function(event){
+  console.warn('Promesse rejetée sans gestion :', event && event.reason);
+};
+
+/* =========================================================
    BOOTSTRAP
 ========================================================= */
-function boot(){
-  StateM.init();
-  window.addEventListener('hashchange', route);
-  if(!location.hash) location.hash = '#home';
-  route();
-  if(!StateM.get().onboardingSeen){
-    showOnboarding();
+function initApp(){
+  try{
+    StateM.init();
+  }catch(e){
+    console.warn('Initialisation des données impossible, démarrage avec un état vide.', e);
+    StateM.data = defaultState();
+  }
+  try{
+    window.addEventListener('hashchange', route);
+  }catch(e){ /* navigation via clics reste fonctionnelle même si ceci échoue */ }
+  try{
+    if(!location.hash) location.hash = '#home';
+  }catch(e){ /* non-fatal */ }
+  try{
+    route();
+  }catch(e){
+    console.warn('Premier rendu impossible.', e);
+    const app = document.getElementById('app');
+    if(app) app.innerHTML = '<div class="card"><div class="empty-state"><div class="ic">⚠️</div><p>Un problème est survenu pendant le chargement. Essaie de recharger la page.</p></div></div>';
+  }
+  try{
+    if(!StateM.get().onboardingSeen){
+      showOnboarding();
+    }
+  }catch(e){ /* l'app reste utilisable même sans onboarding */ }
+}
+
+function startWhenReady(){
+  if(document.readyState==='loading'){
+    document.addEventListener('DOMContentLoaded', initApp);
+  } else {
+    initApp();
   }
 }
-boot();
+startWhenReady();
 
 })();
 </script>
