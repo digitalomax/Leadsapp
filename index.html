@@ -377,13 +377,25 @@ const Utils = {
     const diff = d.getTime() - new Date(new Date().toDateString()).getTime();
     return Math.round(diff/86400000);
   },
-  downloadFile(filename, content, mime){
+  async downloadFile(filename, content, mime){
     const blob = new Blob([content], {type: mime || 'text/plain;charset=utf-8'});
+    if(window.claude && typeof window.claude.use==='function'){
+      try{
+        const downloads = await window.claude.use('downloads');
+        if(downloads){
+          await downloads.save({filename, data: blob});
+          return true;
+        }
+      }catch(e){
+        return false;
+      }
+    }
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url; a.download = filename;
     document.body.appendChild(a); a.click();
     setTimeout(()=>{ document.body.removeChild(a); URL.revokeObjectURL(url); }, 300);
+    return true;
   },
   async copyText(text){
     try{
@@ -1909,12 +1921,12 @@ const Actions = {
     const ok = await Utils.copyText(text);
     UI.toast(ok?'Copié':'Copie impossible.');
   },
-  exportCalculator(){
+  exportCalculator: async function(){
     const st = StateM.get();
     const r = Calculator.compute(st.calculator);
     const text = "RÉSUMÉ CALCULATEUR ARGENT DORMANT\n\nScénario prudent : "+Utils.money(r.prudent.ca)+"\nScénario médian : "+Utils.money(r.median.ca)+"\nScénario ambitieux : "+Utils.money(r.ambitieux.ca)+"\n\nCette estimation n'est pas une prévision de ventes.";
-    Utils.downloadFile('resume-calculateur.txt', text, 'text/plain;charset=utf-8');
-    UI.toast('Fichier téléchargé.');
+    const ok = await Utils.downloadFile('resume-calculateur.txt', text, 'text/plain;charset=utf-8');
+    UI.toast(ok?'Fichier téléchargé.':'Téléchargement annulé.');
   },
   moveLeadSelect(select){
     const val = select.value;
@@ -1927,13 +1939,19 @@ const Actions = {
     const ok = await Utils.copyText(buildPlanText());
     UI.toast(ok?'Copié':'Copie impossible, essaie le téléchargement .txt.');
   },
-  exportTxt(){ Utils.downloadFile('plan-j0-j30.txt', buildPlanText(), 'text/plain;charset=utf-8'); UI.toast('Fichier téléchargé.'); },
-  exportJson(){ Utils.downloadFile('leads-dormants-sauvegarde.json', JSON.stringify(StateM.get(), null, 2), 'application/json'); UI.toast('Fichier téléchargé.'); },
-  exportCsv(){
+  exportTxt: async function(){
+    const ok = await Utils.downloadFile('plan-j0-j30.txt', buildPlanText(), 'text/plain;charset=utf-8');
+    UI.toast(ok?'Fichier téléchargé.':'Téléchargement annulé.');
+  },
+  exportJson: async function(){
+    const ok = await Utils.downloadFile('leads-dormants-sauvegarde.json', JSON.stringify(StateM.get(), null, 2), 'application/json');
+    UI.toast(ok?'Fichier téléchargé.':'Téléchargement annulé.');
+  },
+  exportCsv: async function(){
     const st = StateM.get();
     if(st.leads.length===0){ UI.toast('Aucun lead à exporter.'); return; }
-    Utils.downloadFile('leads.csv', buildLeadsCsv(), 'text/csv;charset=utf-8');
-    UI.toast('Fichier téléchargé.');
+    const ok = await Utils.downloadFile('leads.csv', buildLeadsCsv(), 'text/csv;charset=utf-8');
+    UI.toast(ok?'Fichier téléchargé.':'Téléchargement annulé.');
   },
   printPlan(){ window.print(); },
   openImport(){ document.getElementById('import-file-input').click(); },
