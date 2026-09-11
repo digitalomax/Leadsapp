@@ -431,6 +431,45 @@ const Utils = {
       cur = cur[parts[i]];
     }
     cur[parts[parts.length-1]] = value;
+  },
+  normalizeForMatch(str){
+    try{
+      return String(str==null?'':str).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').trim();
+    }catch(e){ return String(str==null?'':str).toLowerCase().trim(); }
+  },
+  matchFromList(value, list){
+    const norm = Utils.normalizeForMatch(value);
+    if(!norm) return '';
+    for(const item of list){ if(Utils.normalizeForMatch(item)===norm) return item; }
+    for(const item of list){
+      const itemNorm = Utils.normalizeForMatch(item);
+      if(norm.includes(itemNorm) || itemNorm.includes(norm)) return item;
+    }
+    return '';
+  },
+  excelSerialToISO(serial){
+    const n = Utils.toNumber(serial);
+    if(!isFinite(n) || n<=0) return '';
+    const utcMs = Math.round((n - 25569) * 86400 * 1000);
+    const d = new Date(utcMs);
+    if(isNaN(d.getTime())) return '';
+    return d.toISOString().slice(0,10);
+  },
+  parseFlexibleDateToISO(value){
+    if(value===null||value===undefined) return '';
+    const s = String(value).trim();
+    if(!s) return '';
+    if(/^\d+(\.\d+)?$/.test(s) && Number(s)>1000 && Number(s)<80000){
+      return Utils.excelSerialToISO(s);
+    }
+    let m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if(m) return m[1]+'-'+m[2]+'-'+m[3];
+    m = s.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4})$/);
+    if(m){
+      const day = m[1].padStart(2,'0'), month = m[2].padStart(2,'0'), year = m[3];
+      return year+'-'+month+'-'+day;
+    }
+    return '';
   }
 };
 
@@ -443,6 +482,17 @@ const CANAUX = ['Email','LinkedIn','Téléphone','SMS','WhatsApp'];
 const TONS = ['Direct','Consultatif','Chaleureux','Premium','Très concis'];
 const OBJECTIFS = ['Obtenir une réponse','Reprogrammer un échange','Obtenir un rendez-vous','Clarifier une objection','Réactiver une opportunité'];
 const OBJECTIONS = ['Prix','Timing','Besoin de réfléchir','Comparaison avec une autre solution','Décision à plusieurs','Manque de priorité','Pas de réponse','Autre'];
+const IMPORT_FIELD_DEFS = [
+  {key:'nom', label:'Nom / Société', synonyms:['nom','societe','entreprise','company','client','prospect','prenom']},
+  {key:'source', label:'Source', synonyms:['source','origine','canal']},
+  {key:'valeur', label:'Valeur potentielle (€)', synonyms:['valeur','montant','prix','budget']},
+  {key:'dernierContact', label:'Dernier contact', synonyms:['dernier contact','date contact','date de contact','last contact']},
+  {key:'statut', label:'Statut', synonyms:['statut','status','etape']},
+  {key:'objection', label:'Objection principale', synonyms:['objection','frein']},
+  {key:'prochaineAction', label:'Prochaine action', synonyms:['prochaine action','next action','todo']},
+  {key:'echeance', label:'Échéance', synonyms:['echeance','deadline','date relance','relance']},
+  {key:'notes', label:'Notes', synonyms:['notes','commentaire','remarque']}
+];
 const DAY_KEYS = ['J0','J1','J3','J7','J14','J30'];
 const DAY_META = {
   J0:{titre:'Confirmation & prochaine étape', but:'Résumer le contexte et faciliter la prochaine action.'},
@@ -817,6 +867,217 @@ const LeadManager = {
 };
 
 /* =========================================================
+   LEAD IMPORT (CSV / XLSX) — vanilla JS, no external library.
+   XLSX is a ZIP of XML files: we read just enough of the ZIP
+   format and OOXML spreadsheet XML to extract the first sheet.
+========================================================= */
+const ImportManager = {
+  parseCSVText(text){
+    if(text.charCodeAt(0)===0xFEFF) text = text.slice(1);
+    const firstLine = text.split(/\r\n|\n|\r/)[0] || '';
+    const delimiter = (firstLine.match(/;/g)||[]).length > (firstLine.match(/,/g)||[]).length ? ';' : ',';
+    const rows = [];
+    let row = [], field = '', inQuotes = false;
+    for(let i=0;i<text.length;i++){
+      const c = text[i];
+      if(inQuotes){
+        if(c==='"'){ if(text[i+1]==='"'){ field+='"'; i++; } else inQuotes=false; }
+        else field+=c;
+      } else {
+        if(c==='"') inQuotes=true;
+        else if(c===delimiter){ row.push(field); field=''; }
+        else if(c==='\n'){ row.push(field); rows.push(row); row=[]; field=''; }
+        else if(c==='\r'){ /* skip; \n follows in CRLF */ }
+        else field+=c;
+      }
+    }
+    if(field.length || row.length){ row.push(field); rows.push(row); }
+    while(rows.length && rows[rows.length-1].every(c=>c.trim()==='')) rows.pop();
+    const headers = (rows.shift()||[]).map(h=>h.trim());
+    return {headers, rows: rows.map(r=>{ while(r.length<headers.length) r.push(''); return r; })};
+  },
+  colLettersToIndex(letters){
+    let n = 0;
+    for(let i=0;i<letters.length;i++){ n = n*26 + (letters.charCodeAt(i) - 64); }
+    return n-1;
+  },
+  async unzipFiles(arrayBuffer, wantedNames){
+    const data = new Uint8Array(arrayBuffer);
+    const view = new DataView(arrayBuffer);
+    let eocdOffset = -1;
+    const searchFloor = Math.max(0, data.length - 22 - 65557);
+    for(let i=data.length-22; i>=searchFloor; i--){
+      if(view.getUint32(i,true)===0x06054b50){ eocdOffset = i; break; }
+    }
+    if(eocdOffset===-1) throw new Error("Ce fichier ne semble pas être un fichier Excel (.xlsx) valide. S'il s'agit d'un ancien format .xls, réenregistre-le en .xlsx ou exporte en CSV.");
+    const entryCount = view.getUint16(eocdOffset+10, true);
+    let offset = view.getUint32(eocdOffset+16, true);
+    const results = {};
+    const decoder = new TextDecoder('utf-8');
+    for(let i=0;i<entryCount;i++){
+      if(view.getUint32(offset, true) !== 0x02014b50) break;
+      const method = view.getUint16(offset+10, true);
+      const compSize = view.getUint32(offset+20, true);
+      const nameLen = view.getUint16(offset+28, true);
+      const extraLen = view.getUint16(offset+30, true);
+      const commentLen = view.getUint16(offset+32, true);
+      const localHeaderOffset = view.getUint32(offset+42, true);
+      const name = decoder.decode(data.subarray(offset+46, offset+46+nameLen));
+      if(wantedNames.includes(name)){
+        results[name] = await ImportManager.readZipEntry(view, data, localHeaderOffset, method, compSize);
+      }
+      offset += 46 + nameLen + extraLen + commentLen;
+    }
+    return results;
+  },
+  async readZipEntry(view, data, localOffset, method, compSize){
+    const nameLen = view.getUint16(localOffset+26, true);
+    const extraLen = view.getUint16(localOffset+28, true);
+    const dataStart = localOffset + 30 + nameLen + extraLen;
+    const compBytes = data.subarray(dataStart, dataStart+compSize);
+    if(method===0) return compBytes;
+    if(method===8){
+      const stream = new Blob([compBytes]).stream().pipeThrough(new DecompressionStream('deflate-raw'));
+      return new Uint8Array(await new Response(stream).arrayBuffer());
+    }
+    throw new Error("Ce fichier Excel utilise une compression non prise en charge.");
+  },
+  async parseXLSXArrayBuffer(buf){
+    if(typeof DecompressionStream === 'undefined'){
+      throw new Error("Ce navigateur ne peut pas lire les fichiers Excel ici. Exporte ta liste en CSV puis réessaie.");
+    }
+    const decoder = new TextDecoder('utf-8');
+    const pass1 = await ImportManager.unzipFiles(buf, ['xl/workbook.xml','xl/_rels/workbook.xml.rels']);
+    const workbookXml = pass1['xl/workbook.xml'] ? decoder.decode(pass1['xl/workbook.xml']) : '';
+    if(!workbookXml) throw new Error("Fichier Excel illisible (structure inattendue).");
+    const wbDoc = new DOMParser().parseFromString(workbookXml, 'application/xml');
+    const firstSheetEl = wbDoc.querySelector('sheets > sheet');
+    if(!firstSheetEl) throw new Error("Aucune feuille trouvée dans ce fichier Excel.");
+    const rId = firstSheetEl.getAttribute('r:id') || firstSheetEl.getAttributeNS('http://schemas.openxmlformats.org/officeDocument/2006/relationships','id');
+    let sheetPath = 'xl/worksheets/sheet1.xml';
+    const relsXml = pass1['xl/_rels/workbook.xml.rels'] ? decoder.decode(pass1['xl/_rels/workbook.xml.rels']) : '';
+    if(relsXml && rId){
+      const relsDoc = new DOMParser().parseFromString(relsXml, 'application/xml');
+      const relEls = relsDoc.querySelectorAll('Relationship');
+      for(const rel of relEls){
+        if(rel.getAttribute('Id')===rId){
+          let target = (rel.getAttribute('Target')||'').replace(/^\/?/,'').replace(/^xl\//,'');
+          sheetPath = 'xl/' + target;
+          break;
+        }
+      }
+    }
+    const pass2 = await ImportManager.unzipFiles(buf, [sheetPath, 'xl/sharedStrings.xml']);
+    const sheetXml = pass2[sheetPath] ? decoder.decode(pass2[sheetPath]) : '';
+    if(!sheetXml) throw new Error("Impossible de lire les données de la première feuille.");
+    let sharedStrings = [];
+    if(pass2['xl/sharedStrings.xml']){
+      const ssDoc = new DOMParser().parseFromString(decoder.decode(pass2['xl/sharedStrings.xml']), 'application/xml');
+      sharedStrings = Array.from(ssDoc.querySelectorAll('si')).map(si=>Array.from(si.querySelectorAll('t')).map(t=>t.textContent).join(''));
+    }
+    const sheetDoc = new DOMParser().parseFromString(sheetXml, 'application/xml');
+    const grid = [];
+    let maxCol = 0;
+    Array.from(sheetDoc.querySelectorAll('row')).forEach(rowEl=>{
+      const rowIndex = parseInt(rowEl.getAttribute('r')||'0',10) - 1;
+      if(rowIndex < 0) return;
+      const rowArr = [];
+      Array.from(rowEl.querySelectorAll('c')).forEach(c=>{
+        const ref = c.getAttribute('r') || '';
+        const m = ref.match(/^([A-Z]+)/i);
+        const colIdx = m ? ImportManager.colLettersToIndex(m[1].toUpperCase()) : rowArr.length;
+        const type = c.getAttribute('t');
+        let value = '';
+        if(type==='inlineStr'){
+          const isEl = c.querySelector('is');
+          value = isEl ? Array.from(isEl.querySelectorAll('t')).map(t=>t.textContent).join('') : '';
+        } else {
+          const vEl = c.querySelector('v');
+          const raw = vEl ? vEl.textContent : '';
+          if(type==='s') value = sharedStrings[parseInt(raw,10)] || '';
+          else if(type==='b') value = raw==='1' ? 'Vrai' : 'Faux';
+          else value = raw;
+        }
+        rowArr[colIdx] = value;
+        if(colIdx>maxCol) maxCol = colIdx;
+      });
+      grid[rowIndex] = rowArr;
+    });
+    const headerRow = grid[0] || [];
+    const headers = [];
+    for(let c=0;c<=maxCol;c++){
+      const h = (headerRow[c]!=null && String(headerRow[c]).trim()!=='') ? String(headerRow[c]).trim() : ('Colonne '+(c+1));
+      headers.push(h);
+    }
+    const rows = [];
+    for(let r=1;r<grid.length;r++){
+      const rowArr = grid[r];
+      if(!rowArr) continue;
+      const normalized = [];
+      let hasContent = false;
+      for(let c=0;c<=maxCol;c++){
+        const v = rowArr[c]!=null ? String(rowArr[c]) : '';
+        if(v.trim()!=='') hasContent = true;
+        normalized.push(v);
+      }
+      if(hasContent) rows.push(normalized);
+    }
+    return {headers, rows};
+  },
+  guessMappingForHeader(header){
+    const norm = Utils.normalizeForMatch(header);
+    for(const def of IMPORT_FIELD_DEFS){
+      for(const syn of def.synonyms){
+        if(norm.includes(syn)) return def.key;
+      }
+    }
+    return '';
+  },
+  // Fields that hold a single value with no natural list fallback: the raw
+  // text is used as-is once, verbatim.
+  IMPORT_PLAIN_FIELDS: ['nom','prochaineAction'],
+  // Fields matched against one of the app's canonical option lists.
+  IMPORT_LIST_FIELDS: {source:SOURCES, statut:STATUTS, objection:OBJECTIONS},
+  // Fields holding a date, normalized to ISO (handles Excel serials too).
+  IMPORT_DATE_FIELDS: ['dernierContact','echeance'],
+  buildLeadFromRow(headers, row, mapping){
+    const data = {nom:'', source:'Autre', valeur:'', dernierContact:'', statut:'Nouveau', objection:'', prochaineAction:'', echeance:'', notes:''};
+    const filled = {}; // tracks which single-value fields already got a value from an earlier column
+    const notesParts = [];
+    const overflowParts = [];
+    headers.forEach((h, idx)=>{
+      const target = mapping[idx];
+      const raw = row[idx]!==undefined ? String(row[idx]).trim() : '';
+      if(!raw || !target) return;
+      if(target==='notes'){ notesParts.push(raw); return; }
+      // A later column mapped to a field that's already filled never
+      // overwrites it silently — it's preserved in notes instead, so
+      // nothing from the source file is lost (e.g. both "Nom" and
+      // "Société" columns mapped to the same field).
+      if(filled[target]){ overflowParts.push(h+' : '+raw); return; }
+      if(ImportManager.IMPORT_PLAIN_FIELDS.includes(target)){
+        data[target] = raw; filled[target] = true;
+      } else if(target==='valeur'){
+        data.valeur = String(Utils.toNumber(raw)); filled[target] = true;
+      } else if(ImportManager.IMPORT_DATE_FIELDS.includes(target)){
+        const iso = Utils.parseFlexibleDateToISO(raw);
+        if(iso){ data[target] = iso; filled[target] = true; } else overflowParts.push(h+' : '+raw);
+      } else if(ImportManager.IMPORT_LIST_FIELDS[target]){
+        const m = Utils.matchFromList(raw, ImportManager.IMPORT_LIST_FIELDS[target]);
+        if(m){ data[target] = m; filled[target] = true; } else overflowParts.push(h+' : '+raw);
+      } else {
+        overflowParts.push(h+' : '+raw);
+      }
+    });
+    const blocks = [];
+    if(notesParts.length) blocks.push(notesParts.join('\n'));
+    if(overflowParts.length) blocks.push(overflowParts.join('\n'));
+    data.notes = blocks.join('\n\n');
+    return data;
+  }
+};
+
+/* =========================================================
    SEQUENCE GENERATOR
 ========================================================= */
 const SequenceGenerator = {
@@ -1078,6 +1339,27 @@ function parcoursCard(num,title,desc,route){
 
 /* ---------- LEADS ---------- */
 let leadsUIState = {mode:'quick', filters:{search:'', statut:'', source:'', sort:''}, editingId:null, formOpen:false};
+let importUIState = {active:false, fileName:'', headers:[], rows:[], mapping:[], rowSelected:[], parseError:''};
+function resetImportState(){
+  importUIState = {active:false, fileName:'', headers:[], rows:[], mapping:[], rowSelected:[], parseError:''};
+}
+function computeImportPreview(){
+  const st = StateM.get();
+  const seenInBatch = new Set();
+  return importUIState.rows.map(row=>{
+    const data = ImportManager.buildLeadFromRow(importUIState.headers, row, importUIState.mapping);
+    const hasName = !!data.nom.trim();
+    const normName = Utils.normalizeForMatch(data.nom);
+    const isDupExisting = hasName && st.leads.some(l=>Utils.normalizeForMatch(l.nom)===normName);
+    const isDupInBatch = hasName && seenInBatch.has(normName);
+    if(hasName) seenInBatch.add(normName);
+    let reason = '';
+    if(!hasName) reason = 'Nom manquant — ligne ignorée par défaut';
+    else if(isDupExisting) reason = 'Un lead du même nom existe déjà — vérifie avant d\'importer';
+    else if(isDupInBatch) reason = 'Doublon avec une autre ligne de ce fichier — vérifie avant d\'importer';
+    return {data, reason, hasName};
+  });
+}
 
 function pageLeads(){
   const st = StateM.get();
@@ -1120,12 +1402,17 @@ function quickInventoryForm(st){
 }
 
 function detailedLeadsSection(st){
+  const fileInputHtml = '<input type="file" id="leads-import-file-input" accept=".csv,.xlsx" class="visually-hidden" aria-label="Importer un fichier de prospects">';
+  if(importUIState.active){
+    return importScreen(st) + fileInputHtml;
+  }
   const f = leadsUIState.filters;
   const list = LeadManager.filtered(st, f);
   let body;
   if(st.leads.length===0){
     body = '<div class="empty-state"><div class="ic">🌱</div><p>Commence avec un seul prospect. Tu pourras compléter ton pipeline ensuite.</p>'+
-      '<div class="actions-row" style="justify-content:center;"><button type="button" class="btn" data-action="openLeadForm">Ajouter un lead</button></div></div>';
+      '<div class="actions-row" style="justify-content:center;"><button type="button" class="btn" data-action="openLeadForm">Ajouter un lead</button>'+
+      '<button type="button" class="btn secondary" data-action="openImportLeads">Importer un fichier</button></div></div>';
   } else if(list.length===0){
     body = '<div class="empty-state"><div class="ic">🔍</div><p>Aucun lead ne correspond à ces filtres.</p></div>';
   } else {
@@ -1133,11 +1420,72 @@ function detailedLeadsSection(st){
   }
   return '<div class="card">'+
     '<div class="row between"><div class="card-title">Mes prospects ('+st.leads.length+')</div>'+
-      '<button type="button" class="btn sm" data-action="openLeadForm">+ Ajouter un lead</button></div>'+
+      '<div class="row" style="gap:8px;flex-wrap:wrap;"><button type="button" class="btn-ghost-sm" data-action="openImportLeads">📥 Importer</button>'+
+      '<button type="button" class="btn sm" data-action="openLeadForm">+ Ajouter un lead</button></div></div>'+
     (st.leads.length>0 ? filtersBar(f) : '')+
     body+
   '</div>'+
-  (leadsUIState.formOpen ? leadFormCard(st) : '');
+  (leadsUIState.formOpen ? leadFormCard(st) : '')+
+  fileInputHtml;
+}
+
+function importScreen(st){
+  const ui = importUIState;
+  if(ui.parseError){
+    return '<div class="card">'+
+      '<div class="card-title">Importer un fichier</div>'+
+      '<div class="err">'+Utils.escapeHtml(ui.parseError)+'</div>'+
+      '<div class="actions-row"><button type="button" class="btn secondary" data-action="cancelImport">Fermer</button></div>'+
+    '</div>';
+  }
+  if(!ui.headers.length){
+    return '<div class="card"><div class="empty-state"><div class="ic">📥</div><p>Analyse du fichier en cours...</p></div></div>';
+  }
+  const previews = computeImportPreview();
+  const includedCount = ui.rowSelected.filter(Boolean).length;
+  return '<div class="card">'+
+    '<div class="card-title">Faire correspondre les colonnes</div>'+
+    '<div class="card-sub">Fichier : '+Utils.escapeHtml(ui.fileName)+' · '+ui.rows.length+' ligne(s) détectée(s)</div>'+
+    '<div class="grid cols-2">'+
+      ui.headers.map((h,idx)=>(
+        '<div class="field"><label class="field-label">'+Utils.escapeHtml(h)+'</label>'+
+        '<select data-action-select="setImportMapping" data-col="'+idx+'">'+
+          '<option value="">Ignorer cette colonne</option>'+
+          IMPORT_FIELD_DEFS.map(def=>'<option value="'+def.key+'" '+(ui.mapping[idx]===def.key?'selected':'')+'>'+Utils.escapeHtml(def.label)+'</option>').join('')+
+        '</select></div>'
+      )).join('')+
+    '</div>'+
+    '<p class="hint">Les colonnes ignorées ou non reconnues sont ajoutées aux notes de chaque lead, pour ne rien perdre.</p>'+
+  '</div>'+
+  '<div class="card">'+
+    '<div class="row between"><div class="card-title">Aperçu — '+includedCount+' / '+ui.rows.length+' ligne(s) sélectionnée(s)</div></div>'+
+    '<div class="card-sub">Décoche les lignes que tu ne veux pas importer. Tu gardes toujours la décision finale.</div>'+
+    '<div class="stack">'+previews.map((p,idx)=>importRowCard(p,idx)).join('')+'</div>'+
+  '</div>'+
+  '<div class="actions-row">'+
+    '<button type="button" class="btn secondary" data-action="cancelImport">Annuler l\'import</button>'+
+    '<button type="button" class="btn" data-action="confirmImportLeads" '+(includedCount===0?'disabled':'')+'>Importer '+includedCount+' lead(s)</button>'+
+  '</div>';
+}
+
+function importRowCard(p, idx){
+  const d = p.data;
+  const checked = !!importUIState.rowSelected[idx];
+  return '<div class="lead-card">'+
+    '<div class="top"><div style="display:flex;gap:10px;align-items:flex-start;">'+
+      '<input type="checkbox" data-import-row-toggle="'+idx+'" '+(checked?'checked':'')+' style="width:20px;height:20px;margin-top:2px;accent-color:var(--accent);flex:0 0 auto;" aria-label="Inclure cette ligne dans l\'import">'+
+      '<div><h3>'+Utils.escapeHtml(d.nom||'(Sans nom)')+'</h3>'+
+      (p.reason?'<p class="hint" style="color:var(--danger-strong);">'+Utils.escapeHtml(p.reason)+'</p>':'')+
+      '</div></div></div>'+
+    '<div class="lead-meta">'+
+      '<span>'+Utils.escapeHtml(d.source)+'</span>'+
+      '<span>'+Utils.escapeHtml(d.statut)+'</span>'+
+      (d.valeur?'<span>'+Utils.money(d.valeur)+'</span>':'')+
+      (d.dernierContact?'<span>Dernier contact : '+Utils.formatDate(d.dernierContact)+'</span>':'')+
+      (d.objection?'<span>Objection : '+Utils.escapeHtml(d.objection)+'</span>':'')+
+    '</div>'+
+    (d.notes?'<p class="hint" style="margin-top:8px;white-space:pre-wrap;">'+Utils.escapeHtml(d.notes)+'</p>':'')+
+  '</div>';
 }
 
 function filtersBar(f){
@@ -1715,6 +2063,33 @@ const Actions = {
   },
   setLeadMode(btn){ leadsUIState.mode = btn.dataset.mode; if(leadsUIState.mode==='quick') StateM.set('quickInventory.actif', true); rerender(); },
   openLeadForm(){ leadsUIState.editingId=null; leadsUIState.formOpen=true; rerender(); scrollToFormSoon(); },
+  openImportLeads(){
+    const input = document.getElementById('leads-import-file-input');
+    if(input) input.click();
+  },
+  setImportMapping(select){
+    const idx = Number(select.dataset.col);
+    importUIState.mapping[idx] = select.value;
+    const previews = computeImportPreview();
+    importUIState.rowSelected = previews.map(p=>p.hasName);
+    rerender();
+  },
+  cancelImport(){ resetImportState(); rerender(); },
+  confirmImportLeads(){
+    const st = StateM.get();
+    const previews = computeImportPreview();
+    let count = 0;
+    previews.forEach((p, idx)=>{
+      if(importUIState.rowSelected[idx]){
+        st.leads.unshift(LeadManager._raw(p.data));
+        count++;
+      }
+    });
+    if(count>0) StateM.save();
+    resetImportState();
+    UI.toast(count>0 ? (count+' lead(s) importé(s).') : 'Aucun lead sélectionné.');
+    rerender();
+  },
   editLead(btn){ leadsUIState.editingId = btn.dataset.id; leadsUIState.formOpen=true; rerender(); scrollToFormSoon(); },
   cancelLeadForm(){ leadsUIState.formOpen=false; leadsUIState.editingId=null; rerender(); },
   saveLeadForm(btn){
@@ -2081,6 +2456,48 @@ document.addEventListener('change', function(e){
       t.value = '';
     };
     reader.readAsText(file);
+  }
+  if(t.matches('[data-action-select="setImportMapping"]')){
+    Actions.setImportMapping(t);
+  }
+  if(t.matches('[data-import-row-toggle]')){
+    const idx = Number(t.dataset.importRowToggle);
+    importUIState.rowSelected[idx] = t.checked;
+    rerender();
+  }
+  if(t.id==='leads-import-file-input' && t.files && t.files[0]){
+    const file = t.files[0];
+    importUIState = {active:true, fileName:file.name, headers:[], rows:[], mapping:[], rowSelected:[], parseError:''};
+    const isCSV = /\.csv$/i.test(file.name);
+    const onParsed = ({headers, rows})=>{
+      if(!headers.length || !rows.length){
+        importUIState.parseError = "Aucune donnée exploitable n'a été trouvée dans ce fichier.";
+        rerender();
+        return;
+      }
+      importUIState.headers = headers;
+      importUIState.rows = rows;
+      importUIState.mapping = headers.map(h=>ImportManager.guessMappingForHeader(h));
+      const previews = computeImportPreview();
+      importUIState.rowSelected = previews.map(p=>p.hasName);
+      rerender();
+    };
+    const onFail = (msg) => { importUIState.parseError = msg; rerender(); };
+    const reader = new FileReader();
+    if(isCSV){
+      reader.onload = ()=>{ try{ onParsed(ImportManager.parseCSVText(String(reader.result))); }catch(err){ onFail("Ce fichier CSV n'a pas pu être lu."); } };
+      reader.onerror = ()=>onFail("Ce fichier n'a pas pu être lu.");
+      reader.readAsText(file);
+    } else {
+      reader.onload = async ()=>{
+        try{ onParsed(await ImportManager.parseXLSXArrayBuffer(reader.result)); }
+        catch(err){ onFail((err && err.message) ? err.message : "Ce fichier Excel n'a pas pu être lu. Essaie d'exporter en CSV."); }
+      };
+      reader.onerror = ()=>onFail("Ce fichier n'a pas pu être lu.");
+      reader.readAsArrayBuffer(file);
+    }
+    rerender();
+    t.value = '';
   }
 });
 document.addEventListener('input', Utils.debounce(function(e){
